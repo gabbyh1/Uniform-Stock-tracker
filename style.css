@@ -1,0 +1,333 @@
+*{
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Arial, Helvetica, sans-serif;
+  margin:0;
+  background:#f4f6f8;
+  color:#222;
+}
+
+/* LOGIN */
+
+.login-screen{
+  min-height:100vh;
+  width:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg, #002147, #0056a6);
+  padding:20px;
+}
+
+.login-box{
+  background:white;
+  padding:35px;
+  border-radius:20px;
+  width:100%;
+  max-width:380px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.25);
+}
+
+.login-box h1{
+  margin:0 0 8px 0;
+  color:#002147;
+  font-size:26px;
+}
+
+.login-box p{
+  margin:0;
+  color:#555;
+}
+
+.login-box input{
+  width:100%;
+  padding:14px;
+  margin-top:22px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  font-size:16px;
+}
+
+.login-box button{
+  margin-top:18px;
+  width:100%;
+  padding:14px;
+  background:#002147;
+  color:white;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:16px;
+  font-weight:bold;
+}
+
+.login-box button:hover{
+  background:#003b7a;
+}
+
+/* MAIN */
+
+.main-content{
+  min-height:100vh;
+}
+
+header{
+  background:#002147;
+  color:white;
+  padding:22px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+}
+
+header h1{
+  margin:0;
+  font-size:28px;
+}
+
+header p{
+  margin:6px 0 0 0;
+  opacity:0.9;
+}
+
+/* PAGE DROPDOWN MENU */
+
+.page-menu{
+  background:white;
+  padding:15px 20px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+.page-menu label{
+  font-weight:bold;
+  color:#002147;
+}
+
+.page-menu select{
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  min-width:220px;
+  font-size:15px;
+  background:white;
+}
+
+/* PAGE DISPLAY */
+
+.page{
+  display:none;
+}
+
+.active-page{
+  display:block;
+}
+
+/* CONTROLS */
+
+.top-controls{
+  display:flex;
+  gap:12px;
+  padding:20px;
+  background:white;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
+.history-controls{
+  padding:0 0 15px 0;
+  box-shadow:none;
+}
+
+.top-controls input{
+  flex:1;
+  padding:15px;
+  border-radius:12px;
+  border:1px solid #ccc;
+  font-size:16px;
+}
+
+.top-controls button{
+  padding:15px 20px;
+  border-radius:12px;
+  border:none;
+  background:#002147;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.top-controls button:hover{
+  background:#003b7a;
+}
+
+/* CARDS */
+
+.card{
+  background:white;
+  margin:20px;
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.08);
+}
+
+.card h2{
+  margin-top:0;
+  color:#002147;
+}
+
+/* TABLE */
+
+.table-wrapper{
+  width:100%;
+  overflow-x:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+  overflow:hidden;
+}
+
+th{
+  background:#002147;
+  color:white;
+  padding:14px;
+  text-align:left;
+  font-size:15px;
+}
+
+td{
+  padding:13px 14px;
+  border-bottom:1px solid #e5e5e5;
+  font-size:15px;
+}
+
+tr:hover{
+  background:#f1f5f9;
+}
+
+tr:last-child td{
+  border-bottom:none;
+}
+
+/* FORMS */
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:12px;
+  margin-bottom:15px;
+}
+
+.form-grid input,
+.form-grid select{
+  width:100%;
+  padding:14px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  font-size:15px;
+  background:white;
+}
+
+.selected-stock-info{
+  background:#f1f5f9;
+  border-left:5px solid #002147;
+  padding:12px;
+  margin-bottom:15px;
+  border-radius:8px;
+  font-size:14px;
+  color:#333;
+}
+
+.main-button{
+  width:100%;
+  padding:14px;
+  background:#002147;
+  color:white;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:16px;
+  font-weight:bold;
+}
+
+.main-button:hover{
+  background:#003b7a;
+}
+
+.hint{
+  font-size:13px;
+  color:#666;
+  margin-bottom:0;
+}
+
+/* STOCK WARNING */
+
+.low-stock{
+  color:#d60000;
+  font-weight:bold;
+}
+
+.no-data{
+  text-align:center;
+  color:#777;
+  padding:20px;
+}
+
+/* MOBILE */
+
+@media screen and (max-width:800px){
+
+  header{
+    padding:18px;
+  }
+
+  header h1{
+    font-size:22px;
+  }
+
+  .page-menu{
+    flex-direction:column;
+    align-items:stretch;
+    padding:15px;
+  }
+
+  .page-menu select{
+    width:100%;
+    min-width:0;
+  }
+
+  .top-controls{
+    flex-direction:column;
+    padding:15px;
+  }
+
+  .history-controls{
+    padding:0 0 15px 0;
+  }
+
+  .card{
+    margin:15px;
+    padding:15px;
+  }
+
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+
+  th, td{
+    padding:10px;
+    font-size:13px;
+  }
+
+  .login-box{
+    padding:28px;
+  }
+}
