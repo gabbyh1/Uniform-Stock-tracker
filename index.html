@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>1384 Uniform Stock</title>
+
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+  <div class="login-screen" id="loginScreen">
+    <div class="login-box">
+      <h1>1384 Uniform Stock</h1>
+      <p>Uniform stock and issuing system</p>
+
+      <input type="password" id="passwordInput" placeholder="Enter Password">
+      <button onclick="checkPassword()">Login</button>
+    </div>
+  </div>
+
+  <div class="main-content" id="mainContent" style="display:none;">
+
+    <header>
+      <h1>1384 Uniform Stock</h1>
+      <p>Search stock, issue uniform and track cadet kit</p>
+    </header>
+
+    <nav class="page-menu">
+      <label for="pageSelect">Select Page</label>
+
+      <select id="pageSelect" onchange="changePage()">
+        <option value="stockPage">Current Stock</option>
+        <option value="issuePage">Issue Uniform</option>
+        <option value="historyPage">Issue History</option>
+      </select>
+    </nav>
+
+    <!-- CURRENT STOCK PAGE -->
+    <section id="stockPage" class="page active-page">
+
+      <section class="top-controls">
+        <input type="text" id="searchInput" placeholder="Search item, size or box..." onkeyup="searchStock()">
+        <button onclick="loadStock()">Refresh Stock</button>
+      </section>
+
+      <section class="card">
+        <h2>Current Stock</h2>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Size</th>
+                <th>Box</th>
+                <th>Quantity</th>
+              </tr>
+            </thead>
+
+            <tbody id="stockTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </section>
+
+    <!-- ISSUE UNIFORM PAGE -->
+    <section id="issuePage" class="page">
+
+      <section class="card">
+        <h2>Issue Uniform</h2>
+
+        <div class="form-grid">
+          <input type="text" id="cadetName" placeholder="Cadet Name">
+
+          <select id="issueItem" onchange="updateSizeDropdown()">
+            <option value="">Select Item Type</option>
+          </select>
+
+          <select id="issueSize" onchange="updateBoxInfo()">
+            <option value="">Select Size</option>
+          </select>
+
+          <input type="number" id="issueQty" placeholder="Quantity" value="1" min="1">
+        </div>
+
+        <div class="selected-stock-info" id="selectedStockInfo">
+          Select an item and size to see available stock.
+        </div>
+
+        <button class="main-button" onclick="issueUniform()">Issue Uniform</button>
+
+        <p class="hint">
+          Select the item type first, then only available sizes for that item will appear.
+        </p>
+      </section>
+
+    </section>
+
+    <!-- ISSUE HISTORY PAGE -->
+    <section id="historyPage" class="page">
+
+      <section class="card">
+        <h2>Issue History</h2>
+
+        <section class="top-controls history-controls">
+          <input type="text" id="historySearchInput" placeholder="Search cadet, item, size or box..." onkeyup="searchIssueHistory()">
+          <button onclick="loadIssueHistory()">Refresh History</button>
+        </section>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Cadet</th>
+                <th>Item</th>
+                <th>Size</th>
+                <th>Box</th>
+                <th>Qty</th>
+                <th>Date</th>
+                <th>Returned</th>
+              </tr>
+            </thead>
+
+            <tbody id="issueHistoryTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </section>
+
+  </div>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
