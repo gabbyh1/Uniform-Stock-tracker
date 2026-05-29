@@ -20,6 +20,25 @@
   --danger:#ffe0e4;
 }
 
+/* IMPORTANT FIX */
+.screen,
+.app,
+.staff-page{
+  display:none !important;
+}
+
+.screen.active{
+  display:flex !important;
+}
+
+.app.active{
+  display:block !important;
+}
+
+.staff-page.active{
+  display:block !important;
+}
+
 body{
   font-family:Arial, Helvetica, sans-serif;
   background:var(--bg);
@@ -28,12 +47,10 @@ body{
 }
 
 .screen{
-  display:none;
   min-height:100vh;
 }
 
 .screen.active{
-  display:flex;
   justify-content:center;
   align-items:center;
   padding:18px;
@@ -41,12 +58,7 @@ body{
 }
 
 .app{
-  display:none;
   min-height:100vh;
-}
-
-.app.active{
-  display:block;
 }
 
 .login-card{
@@ -159,14 +171,6 @@ nav button:hover{
 
 main{
   padding:18px;
-}
-
-.staff-page{
-  display:none;
-}
-
-.staff-page.active{
-  display:block;
 }
 
 .card{
@@ -324,7 +328,6 @@ hr{
   margin:20px 0;
 }
 
-/* MOBILE LAYOUT */
 @media(max-width:750px){
 
   .screen.active{
@@ -431,7 +434,6 @@ hr{
   }
 }
 
-/* VERY SMALL PHONES */
 @media(max-width:430px){
 
   nav{
