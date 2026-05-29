@@ -148,29 +148,26 @@ populateKitCheckDropdown();
 
   changePage();
 }
-147    changePage();
-148 }
-149
-150 function populateKitCheckDropdown(){
+  
+function populateKitCheckDropdown(){
 
-151   const dropdown = document.getElementById("eventKitList");
+ const dropdown = document.getElementById("eventKitList");
 
-152   if(!dropdown){
-153     return;
-154   }
+ if(!dropdown){
+    return;
+}
 
-155   dropdown.innerHTML = `<option value="">Select Kit List</option>`;
+dropdown.innerHTML = `<option value="">Select Kit List</option>`;
 
-156   allATKitLists.forEach(list => {
-157     dropdown.innerHTML += `
-158       <option value="${list.id}">
-159         ${escapeHtml(list.activity_name)}
-160       </option>
-161     `;
-162   });
-163 }
+allATKitLists.forEach(list => {
+dropdown.innerHTML += `
+ <option value="${list.id}">
+${escapeHtml(list.activity_name)}
+</option>
+`;
+});
+}
 
-164 function changePage(){
 function changePage(){
   document.querySelectorAll(".page").forEach(page => {
     page.classList.remove("active-page");
