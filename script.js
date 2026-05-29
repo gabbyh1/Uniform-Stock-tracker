@@ -1,6 +1,14 @@
 const SUPABASE_URL = "https://oskorapwgvoecvtdtkwi.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Zm5qgcsjzsuzicBwa6Z0sA_qgn-Gm5R";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let supabaseClient = null;
+
+if(window.supabase){
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}else{
+  alert("Supabase did not load. Check your internet connection or script link.");
+}
+
 const STAFF_PASSWORD = "1384-Staff";
 
 let uniformStock = [];
@@ -20,38 +28,6 @@ let selectedEventIssueListId = "";
 let selectedCheckerListId = "";
 let modalCadet = "";
 
-function escapeHtml(value){
-  return String(value ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-function formatDate(value){
-  if(!value) return "";
-  try{
-    return new Date(value).toLocaleString("en-GB");
-  }catch{
-    return value;
-  }
-}
-
-function todayISO(){
-  return new Date().toISOString();
-}
-
-function localDate(){
-  return new Date().toISOString().slice(0,10);
-}
-
-function saveLocal(){
-  localStorage.setItem("eventCadets", JSON.stringify(eventCadets));
-  localStorage.setItem("eventIssueRows", JSON.stringify(eventIssueRows));
-  localStorage.setItem("checkerData", JSON.stringify(checkerData));
-}
-
 function hideAll(){
   [
     "homeScreen",
@@ -59,8 +35,14 @@ function hideAll(){
     "staffApp",
     "cadetUniformPortal",
     "cadetATPortal",
-    "kitSelectModal"
-  ].forEach(id => document.getElementById(id)?.classList.add("hidden"));
+    "kitIssueModal"
+  ].forEach(id => {
+    const element = document.getElementById(id);
+    if(element){
+      element.classList.add("hidden");
+      element.style.display = "";
+    }
+  });
 }
 
 function backHome(){
@@ -76,8 +58,43 @@ function openStaffLogin(){
 async function openCadetUniformPortal(){
   hideAll();
   document.getElementById("cadetUniformPortal").classList.remove("hidden");
-  await loadUniformStock();
-  populateCadetUniformItems();
+
+  if(supabaseClient){
+    await loadUniformStock();
+    populateCadetUniformItems();
+  }
+}
+
+async function openCadetATPortal(){
+  hideAll();
+  document.getElementById("cadetATPortal").classList.remove("hidden");
+
+  if(supabaseClient){
+    await loadKitLists();
+    populateCadetATEvents();
+  }
+}
+
+function logout(){
+  backHome();
+}
+
+async function staffLogin(){
+  const entered = document.getElementById("staffPasswordInput").value.trim();
+
+  if(entered !== STAFF_PASSWORD){
+    alert("Incorrect password");
+    return;
+  }
+
+  hideAll();
+  document.getElementById("staffApp").classList.remove("hidden");
+
+  if(supabaseClient){
+    await loadAll();
+  }
+
+  showStaffPage("uniformStockPage");
 }
 
 async function openCadetATPortal(){
@@ -1727,9 +1744,10 @@ function renderServiceability(){
 }
 /* STARTUP */
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   hideAll();
   document.getElementById("homeScreen").classList.remove("hidden");
+});
 
   try{
     await loadKitLists();
