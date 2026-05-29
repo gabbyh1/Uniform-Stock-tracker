@@ -138,8 +138,8 @@ await loadUniformRequests();
 await loadATKit();
 await loadATIssueHistory();
 await loadATRequests();
-await loadATKitLists();
-
+await loadATKitLists();  
+console.log("Loaded kit lists:", allATKitLists);
 populateKitCheckDropdown();
   
   if(loggedInMode === "staff"){
@@ -1622,7 +1622,7 @@ function populateKitCheckDropdown(){
 
     dropdown.innerHTML += `
       <option value="${list.id}">
-        ${escapeHtml(list.activity_name)}
+        ${escapeHtml(list.activity_name || list.name || list.event_name || list.kit_list_name || "Unnamed Kit List")}
       </option>
     `;
 
