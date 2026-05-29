@@ -1,140 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>1384 Uniform Stock</title>
-
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-  <div class="login-screen" id="loginScreen">
-    <div class="login-box">
-      <h1>1384 Uniform Stock</h1>
-      <p>Uniform stock and issuing system</p>
+<div id="homeScreen" class="login-screen">
+  <div class="login-box">
+    <h1>1384 Uniform Stock</h1>
+    <p>Select access type</p>
 
-      <input type="password" id="passwordInput" placeholder="Enter Password">
-      <button onclick="checkPassword()">Login</button>
+    <button onclick="openCadetRequest()">Cadet Uniform Request</button>
+    <button onclick="openStaffLogin()">Staff / Temporary Login</button>
+  </div>
+</div>
+
+<div id="staffLoginScreen" class="login-screen" style="display:none;">
+  <div class="login-box">
+    <h1>Staff Login</h1>
+    <input id="staffPasswordInput" type="password" placeholder="Enter staff or temporary password">
+    <button onclick="staffLogin()">Login</button>
+    <button class="secondary-btn" onclick="backHome()">Back</button>
+  </div>
+</div>
+
+<div id="mainContent" class="main-content" style="display:none;">
+
+<header>
+  <h1>1384 Uniform Stock</h1>
+  <p id="loggedInAs"></p>
+  <button onclick="logout()" class="logout-btn">Logout</button>
+</header>
+
+<nav class="page-menu">
+  <label>Select Page</label>
+  <select id="pageSelect" onchange="changePage()">
+    <option value="stockPage">Current Stock</option>
+    <option value="issuePage">Issue Uniform</option>
+    <option value="historyPage">Issue History</option>
+    <option value="requestsPage">Uniform Requests</option>
+    <option value="tempPasswordPage">Temporary Passwords</option>
+  </select>
+</nav>
+
+<section id="stockPage" class="page active-page">
+  <section class="top-controls">
+    <input id="searchInput" placeholder="Search item, size or box..." onkeyup="searchStock()">
+    <button onclick="loadStock()">Refresh</button>
+  </section>
+
+  <section class="card">
+    <h2>Current Stock</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Size</th><th>Box</th><th>Qty</th></tr>
+        </thead>
+        <tbody id="stockTable"></tbody>
+      </table>
     </div>
-  </div>
+  </section>
+</section>
 
-  <div class="main-content" id="mainContent" style="display:none;">
+<section id="issuePage" class="page">
+  <section class="card">
+    <h2>Issue Uniform</h2>
 
-    <header>
-      <h1>1384 Uniform Stock</h1>
-      <p>Search stock, issue uniform and track cadet kit</p>
-    </header>
+    <div class="form-grid">
+      <input id="issueCadetName" placeholder="Cadet Name">
 
-    <nav class="page-menu">
-      <label for="pageSelect">Select Page</label>
-
-      <select id="pageSelect" onchange="changePage()">
-        <option value="stockPage">Current Stock</option>
-        <option value="issuePage">Issue Uniform</option>
-        <option value="historyPage">Issue History</option>
+      <select id="issueItem" onchange="updateIssueSizeDropdown()">
+        <option value="">Select Item</option>
       </select>
-    </nav>
 
-    <!-- CURRENT STOCK PAGE -->
-    <section id="stockPage" class="page active-page">
+      <select id="issueSize" onchange="updateBoxInfo()">
+        <option value="">Select Size</option>
+      </select>
 
-      <section class="top-controls">
-        <input type="text" id="searchInput" placeholder="Search item, size or box..." onkeyup="searchStock()">
-        <button onclick="loadStock()">Refresh Stock</button>
-      </section>
+      <input id="issueQty" type="number" value="1" min="1">
+    </div>
 
-      <section class="card">
-        <h2>Current Stock</h2>
+    <div id="selectedStockInfo" class="selected-stock-info">
+      Select an item and size.
+    </div>
 
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Size</th>
-                <th>Box</th>
-                <th>Quantity</th>
-              </tr>
-            </thead>
+    <button class="main-button" onclick="issueUniform()">Issue Uniform</button>
+  </section>
+</section>
 
-            <tbody id="stockTable"></tbody>
-          </table>
-        </div>
-      </section>
+<section id="historyPage" class="page">
+  <section class="card">
+    <h2>Issue History</h2>
 
+    <section class="top-controls history-controls">
+      <input id="historySearchInput" placeholder="Search history..." onkeyup="searchIssueHistory()">
+      <button onclick="loadIssueHistory()">Refresh</button>
     </section>
 
-    <!-- ISSUE UNIFORM PAGE -->
-    <section id="issuePage" class="page">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Cadet</th><th>Item</th><th>Size</th><th>Box</th><th>Qty</th><th>Date</th><th>Returned</th></tr>
+        </thead>
+        <tbody id="issueHistoryTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
 
-      <section class="card">
-        <h2>Issue Uniform</h2>
+<section id="requestsPage" class="page">
+  <section class="card">
+    <h2>Uniform Requests</h2>
+    <button class="main-button" onclick="loadRequests()">Refresh Requests</button>
 
-        <div class="form-grid">
-          <input type="text" id="cadetName" placeholder="Cadet Name">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Cadet</th><th>Item</th><th>Size</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
+        </thead>
+        <tbody id="requestsTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
 
-          <select id="issueItem" onchange="updateSizeDropdown()">
-            <option value="">Select Item Type</option>
-          </select>
+<section id="tempPasswordPage" class="page">
+  <section class="card">
+    <h2>Temporary Full Access Passwords</h2>
 
-          <select id="issueSize" onchange="updateBoxInfo()">
-            <option value="">Select Size</option>
-          </select>
+    <div class="form-grid">
+      <input id="tempPassword" placeholder="Temporary password">
+      <input id="tempNote" placeholder="Who is it for?">
+      <input id="tempExpiry" type="datetime-local">
+    </div>
 
-          <input type="number" id="issueQty" placeholder="Quantity" value="1" min="1">
-        </div>
+    <button class="main-button" onclick="createTempPassword()">Create Temporary Password</button>
 
-        <div class="selected-stock-info" id="selectedStockInfo">
-          Select an item and size to see available stock.
-        </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Password</th><th>Note</th><th>Expires</th><th>Active</th><th>Action</th></tr>
+        </thead>
+        <tbody id="tempPasswordsTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
 
-        <button class="main-button" onclick="issueUniform()">Issue Uniform</button>
+</div>
 
-        <p class="hint">
-          Select the item type first, then only available sizes for that item will appear.
-        </p>
-      </section>
+<div id="cadetRequestPage" class="main-content" style="display:none;">
 
-    </section>
+<header>
+  <h1>1384 Uniform Request</h1>
+  <p>Use this page to request replacement or new uniform.</p>
+  <button onclick="backHome()" class="logout-btn">Back</button>
+</header>
 
-    <!-- ISSUE HISTORY PAGE -->
-    <section id="historyPage" class="page">
+<section class="card">
+  <h2>Request Uniform</h2>
 
-      <section class="card">
-        <h2>Issue History</h2>
+  <div class="form-grid">
+    <input id="requestCadetName" placeholder="Your name">
 
-        <section class="top-controls history-controls">
-          <input type="text" id="historySearchInput" placeholder="Search cadet, item, size or box..." onkeyup="searchIssueHistory()">
-          <button onclick="loadIssueHistory()">Refresh History</button>
-        </section>
+    <select id="requestItem" onchange="updateRequestSizeDropdown()">
+      <option value="">Select Item</option>
+    </select>
 
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Cadet</th>
-                <th>Item</th>
-                <th>Size</th>
-                <th>Box</th>
-                <th>Qty</th>
-                <th>Date</th>
-                <th>Returned</th>
-              </tr>
-            </thead>
+    <select id="requestSize">
+      <option value="">Select Size</option>
+    </select>
 
-            <tbody id="issueHistoryTable"></tbody>
-          </table>
-        </div>
-      </section>
-
-    </section>
-
+    <input id="requestReason" placeholder="Reason / notes">
   </div>
 
-  <script src="script.js"></script>
+  <button class="main-button" onclick="submitUniformRequest()">Submit Request</button>
 
+  <p class="hint">This page only submits requests. It cannot access stock, issuing or history.</p>
+</section>
+
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
