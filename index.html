@@ -1,866 +1,487 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Uniform & AT Kit Tracker</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body{font-family:Arial,sans-serif;margin:0;background:#f4f6f8;color:#222}
-header{background:#0b1f3a;color:white;padding:18px;text-align:center}
-nav{display:none;flex-wrap:wrap;gap:8px;background:#142f55;padding:10px}
-nav button{background:white;color:#142f55;border:none;padding:10px 14px;border-radius:6px;font-weight:bold;cursor:pointer}
-.page{display:none;padding:20px}
-.page.active{display:block}
-.card{background:white;padding:16px;margin-bottom:18px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
-input,select,textarea{width:100%;padding:8px;margin:5px 0;box-sizing:border-box}
-button{padding:8px 12px;margin:3px;cursor:pointer}
-table{width:100%;border-collapse:collapse;background:white;margin-top:10px}
-th,td{border:1px solid #ccc;padding:8px;text-align:left}
-th{background:#e9eef5}
-.low{background:#fff3cd}
-.out{background:#f8d7da}
-.ok{background:#d4edda}
-.modal{display:none;position:fixed;z-index:10;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.5)}
-.modal-content{background:white;margin:5% auto;padding:20px;width:90%;max-width:650px;border-radius:8px;max-height:85vh;overflow:auto}
-.checkbox-row{display:flex;align-items:center;gap:8px;margin:6px 0}
-.checkbox-row input{width:auto}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1384 Uniform & AT Kit System</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
+<div id="homeScreen" class="login-screen">
+  <div class="login-box">
+    <h1>1384 Kit System</h1>
+    <p>Select access type</p>
+    <button onclick="openUniformRequest()">Cadet Uniform Request</button>
+    <button onclick="openATRequest()">Cadet AT Kit Request</button>
+    <button onclick="openStaffLogin()">Staff / Temporary Login</button>
+  </div>
+</div>
+
+<div id="staffLoginScreen" class="login-screen" style="display:none;">
+  <div class="login-box">
+    <h1>Staff Login</h1>
+    <input id="staffPasswordInput" type="password" placeholder="Enter staff or temporary password">
+    <button onclick="staffLogin()">Login</button>
+    <button class="secondary-btn" onclick="backHome()">Back</button>
+  </div>
+</div>
+
+<div id="mainContent" class="main-content" style="display:none;">
+
 <header>
-<h1>Uniform & AT Kit Tracker</h1>
+  <h1>1384 Uniform & AT Kit System</h1>
+  <p id="loggedInAs"></p>
+  <button onclick="logout()" class="logout-btn">Logout</button>
 </header>
 
-<section id="loginPage" class="page active">
-<div class="card">
-<h2>Login</h2>
-<input id="loginPassword" type="password" placeholder="Enter password">
-<button onclick="login()">Login</button>
-<p>Default admin password: <b>admin</b></p>
-</div>
-</section>
-
-<nav id="mainNav">
-<button onclick="showPage('uniformPage')">Uniform Stock</button>
-<button onclick="showPage('atStockPage')">AT Kit Stock</button>
-<button onclick="showPage('eventsPage')">Events</button>
-<button onclick="showPage('issuePage')">Issue Kit</button>
-<button onclick="showPage('historyPage')">History</button>
-<button onclick="showPage('adminPage')">Admin</button>
-<button onclick="logout()">Logout</button>
+<nav class="page-menu">
+  <label>Select Page</label>
+  <select id="pageSelect" onchange="changePage()"></select>
 </nav>
 
-<section id="uniformPage" class="page">
-<div class="card">
-<h2>Uniform Stock</h2>
+<section id="uniformStockPage" class="page active-page">
+  <section class="top-controls">
+    <input id="uniformSearchInput" placeholder="Search uniform item, size or box..." onkeyup="searchUniformStock()">
+    <button onclick="loadUniformStock()">Refresh</button>
+    <button onclick="exportDatabaseBackup()">Export Backup</button>
+  </section>
 
-<input id="uniformItem" placeholder="Uniform item e.g. Shirt">
-<input id="uniformSize" placeholder="Size e.g. 34 inch / Medium">
-<input id="uniformCurrentStock" type="number" placeholder="Current stock">
-<input id="uniformMinimumStock" type="number" placeholder="Minimum stock">
+  <section class="card">
+    <h2>Uniform - Current Stock</h2>
 
-<button onclick="addUniformStock()">Add Uniform Item</button>
-</div>
+    <div class="form-grid staff-only">
+      <input id="newUniformItem" placeholder="Item">
+      <input id="newUniformSize" placeholder="Size">
+      <input id="newUniformBox" placeholder="Box number">
+      <input id="newUniformQty" type="number" placeholder="Quantity">
+      <input id="newUniformWarning" type="number" placeholder="Warning level" value="1">
+    </div>
 
-<div class="card">
-<h3>Current Uniform Stock</h3>
-<table>
-<thead>
-<tr>
-<th>Item</th>
-<th>Size</th>
-<th>Current Stock</th>
-<th>Minimum</th>
-<th>Change Stock</th>
-<th>Delete</th>
-</tr>
-</thead>
-<tbody id="uniformStockTable"></tbody>
-</table>
-</div>
+    <button class="main-button staff-only" onclick="addUniformStock()">Add Uniform Stock</button>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Size</th>
+            <th>Box</th>
+            <th>Qty</th>
+            <th>Stock Change</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody id="uniformStockTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<section id="uniformIssuePage" class="page">
+  <section class="card">
+    <h2>Uniform - Issue Kit</h2>
+
+    <div class="form-grid">
+      <input id="uniformIssueCadetName" placeholder="Cadet Name">
+
+      <select id="uniformIssueItem" onchange="updateUniformIssueSizeDropdown()">
+        <option value="">Select Item</option>
+      </select>
+
+      <select id="uniformIssueSize" onchange="updateUniformBoxInfo()">
+        <option value="">Select Size</option>
+      </select>
+
+      <input id="uniformIssueQty" type="number" value="1" min="1">
+    </div>
+
+    <div id="uniformSelectedStockInfo" class="selected-stock-info">
+      Select an item and size.
+    </div>
+
+    <button class="main-button" onclick="issueUniform()">Issue Uniform</button>
+  </section>
+</section>
+
+<section id="uniformHistoryPage" class="page">
+  <section class="card">
+    <h2>Uniform - Issue History</h2>
+
+    <section class="top-controls history-controls">
+      <input id="uniformHistorySearchInput" placeholder="Search uniform history..." onkeyup="searchUniformIssueHistory()">
+      <button onclick="loadUniformIssueHistory()">Refresh</button>
+    </section>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Cadet</th>
+            <th>Item</th>
+            <th>Size</th>
+            <th>Box</th>
+            <th>Qty</th>
+            <th>Date</th>
+            <th>Returned</th>
+          </tr>
+        </thead>
+        <tbody id="uniformIssueHistoryTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<section id="uniformRequestsPage" class="page">
+  <section class="card">
+    <h2>Uniform - Requests</h2>
+    <button class="main-button" onclick="loadUniformRequests()">Refresh Requests</button>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Cadet</th>
+            <th>Item</th>
+            <th>Size</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="uniformRequestsTable"></tbody>
+      </table>
+    </div>
+  </section>
 </section>
 
 <section id="atStockPage" class="page">
-<div class="card">
-<h2>AT Kit Stock</h2>
+  <section class="top-controls">
+    <input id="atSearchInput" placeholder="Search AT kit..." onkeyup="searchATKit()">
+    <button onclick="loadATKit()">Refresh</button>
+  </section>
 
-<input id="atKitType" placeholder="Kit type e.g. Helmet">
-<input id="atItemNumber" placeholder="Item number e.g. H001">
-<input id="atKitSize" placeholder="Size / notes">
+  <section class="card">
+    <h2>AT Kit - Current Kit</h2>
 
-<button onclick="addATKit()">Add AT Kit Item</button>
-</div>
+    <div class="form-grid staff-only">
+      <input id="newATType" placeholder="Kit type">
+      <input id="newATNumber" placeholder="Kit number">
+      <input id="newATSize" placeholder="Size">
+      <input id="newATLocation" placeholder="Location">
+      <input id="newATDescription" placeholder="Description">
+      <input id="newATCondition" placeholder="Condition" value="Good">
+      <input id="newATNotes" placeholder="Notes">
+    </div>
 
-<div class="card">
-<h3>AT Kit Items</h3>
-<table>
-<thead>
-<tr>
-<th>Type</th>
-<th>Item Number</th>
-<th>Size / Notes</th>
-<th>Status</th>
-<th>Times Borrowed</th>
-<th>Delete</th>
-</tr>
-</thead>
-<tbody id="atKitTable"></tbody>
-</table>
-</div>
+    <button class="main-button staff-only" onclick="addATKit()">Add AT Kit</button>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Number</th>
+            <th>Size</th>
+            <th>Condition</th>
+            <th>Status</th>
+            <th>Location</th>
+            <th>Borrowed</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="atKitTable"></tbody>
+      </table>
+    </div>
+  </section>
 </section>
 
-<section id="eventsPage" class="page">
-<div class="card">
-<h2>Create Event</h2>
+<section id="atIssuePage" class="page">
+  <section class="card">
+    <h2>AT Kit - Issue Single Item</h2>
 
-<input id="eventName" placeholder="Event name">
-<input id="eventDate" type="date">
-<textarea id="eventCadets" rows="6" placeholder="Cadets attending - one per line"></textarea>
+    <div class="form-grid">
+      <input id="atIssueCadetName" placeholder="Cadet Name">
 
-<h3>Select Kit Needed</h3>
-<div id="eventKitCheckboxes"></div>
+      <select id="atIssueKitType" onchange="updateATNumberDropdown()">
+        <option value="">Select Kit Type</option>
+      </select>
 
-<button onclick="saveEvent()">Save Event</button>
-</div>
+      <select id="atIssueKitNumber" onchange="updateATKitInfo()">
+        <option value="">Select Kit Number</option>
+      </select>
 
-<div class="card">
-<h3>Saved Events</h3>
-<table>
-<thead>
-<tr>
-<th>Event</th>
-<th>Date</th>
-<th>Cadets</th>
-<th>Kit</th>
-<th>Delete</th>
-</tr>
-</thead>
-<tbody id="eventsTable"></tbody>
-</table>
-</div>
+      <input id="atIssueNotes" placeholder="Notes">
+    </div>
+
+    <div id="atSelectedKitInfo" class="selected-stock-info">
+      Select an AT kit type and kit number.
+    </div>
+
+    <button class="main-button" onclick="issueATKit()">Issue AT Kit</button>
+  </section>
 </section>
 
-<section id="issuePage" class="page">
-<div class="card">
-<h2>Issue Kit by Event</h2>
+<section id="atReturnPage" class="page">
+  <section class="card">
+    <h2>AT Kit - Return Kit</h2>
 
-<select id="issueEventDropdown" onchange="loadIssueEvent()">
-<option value="">Select Event</option>
-</select>
-</div>
+    <div class="form-grid">
+      <select id="atReturnKitNumber" onchange="updateATReturnInfo()">
+        <option value="">Select Issued Kit Number</option>
+      </select>
 
-<div class="card">
-<h3>Cadets Attending</h3>
-<table>
-<thead>
-<tr>
-<th>Cadet</th>
-<th>Issue Kit</th>
-</tr>
-</thead>
-<tbody id="issueCadetsTable"></tbody>
-</table>
-</div>
+      <input id="atReturnCondition" placeholder="Return condition" value="Good">
+      <input id="atReturnNotes" placeholder="Return notes">
+    </div>
 
-<div class="card">
-<h3>Kit Waiting to be Issued / Returned</h3>
-<table>
-<thead>
-<tr>
-<th>Event</th>
-<th>Cadet</th>
-<th>Kit Type</th>
-<th>Item Number Given</th>
-<th>Date</th>
-<th>Return</th>
-</tr>
-</thead>
-<tbody id="issuedKitTable"></tbody>
-</table>
-</div>
+    <div id="atReturnInfo" class="selected-stock-info">
+      Select issued kit to return.
+    </div>
+
+    <button class="main-button" onclick="returnATKit()">Return AT Kit</button>
+  </section>
 </section>
 
-<section id="historyPage" class="page">
-<div class="card">
-<h2>Borrow History</h2>
-<table>
-<thead>
-<tr>
-<th>Date</th>
-<th>Event</th>
-<th>Cadet</th>
-<th>Kit Type</th>
-<th>Item Number</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody id="historyTable"></tbody>
-</table>
-</div>
+<section id="atHistoryPage" class="page">
+  <section class="card">
+    <h2>AT Kit - Issue History</h2>
+
+    <section class="top-controls history-controls">
+      <input id="atHistorySearchInput" placeholder="Search AT history..." onkeyup="searchATIssueHistory()">
+      <button onclick="loadATIssueHistory()">Refresh</button>
+    </section>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Cadet</th>
+            <th>Type</th>
+            <th>Number</th>
+            <th>Issued</th>
+            <th>Returned</th>
+            <th>Return Date</th>
+            <th>Condition</th>
+          </tr>
+        </thead>
+        <tbody id="atIssueHistoryTable"></tbody>
+      </table>
+    </div>
+  </section>
 </section>
 
-<section id="adminPage" class="page">
-<div class="card">
-<h2>Admin / Database</h2>
+<section id="atRequestsPage" class="page">
+  <section class="card">
+    <h2>AT Kit - Requests</h2>
+    <button class="main-button" onclick="loadATRequests()">Refresh Requests</button>
 
-<button onclick="exportDatabase()">Export Database Backup</button>
-
-<input type="file" id="importFile" onchange="importDatabase(event)">
-
-<button onclick="clearDatabase()">Clear Whole Database</button>
-</div>
-
-<div class="card">
-<h2>Temporary Passwords</h2>
-
-<input id="tempPasswordName" placeholder="Name / reason e.g. FS Bloggs">
-<input id="tempPasswordValue" placeholder="Temporary password">
-<button onclick="createTempPassword()">Create Temporary Password</button>
-
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Password</th>
-<th>Date Created</th>
-<th>Delete</th>
-</tr>
-</thead>
-<tbody id="tempPasswordTable"></tbody>
-</table>
-</div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Cadet</th>
+            <th>Activity</th>
+            <th>Kit Needed</th>
+            <th>Notes</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="atRequestsTable"></tbody>
+      </table>
+    </div>
+  </section>
 </section>
 
-<div id="kitModal" class="modal">
-<div class="modal-content">
-<h2 id="modalCadetName">Issue Kit</h2>
-<p>Select everything this cadet needs to borrow.</p>
-<div id="modalKitChecklist"></div>
-<button onclick="confirmKitForCadet()">OK</button>
-<button onclick="closeKitModal()">Cancel</button>
+<section id="atKitListsPage" class="page">
+  <section class="card">
+    <h2>AT Kit - Kit Lists</h2>
+
+    <div class="form-grid staff-only">
+      <input id="newKitListName" placeholder="Activity / Event name">
+      <input id="newKitListNotes" placeholder="Notes">
+    </div>
+
+    <button class="main-button staff-only" onclick="createATKitList()">Create Kit List</button>
+
+    <hr>
+
+    <h3>Add Item to Kit List</h3>
+
+    <div class="form-grid staff-only">
+      <select id="kitListSelect">
+        <option value="">Select Kit List</option>
+      </select>
+
+      <input id="newKitListItem" placeholder="Kit type required e.g. Helmet">
+
+      <select id="newKitListRequired">
+        <option value="true">Required</option>
+        <option value="false">Optional</option>
+      </select>
+    </div>
+
+    <button class="main-button staff-only" onclick="addItemToKitList()">Add Item</button>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Kit List</th>
+            <th>Item</th>
+            <th>Required</th>
+          </tr>
+        </thead>
+        <tbody id="kitListItemsTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<section id="kitCheckPage" class="page">
+  <section class="card">
+    <h2>AT Kit - Event Kit Check / Multiple Issue</h2>
+
+    <label>Select Event / Kit List</label>
+    <select id="eventKitList" onchange="loadSelectedKitCheck()">
+      <option value="">Select Kit List</option>
+    </select>
+
+    <h3>Add Cadets Attending</h3>
+    <textarea id="kitCheckCadetsInput" rows="5" placeholder="One cadet per line"></textarea>
+    <button class="main-button" onclick="saveKitCheckCadets()">Save Cadets to Event</button>
+
+    <h3>Cadets Attending</h3>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Cadet</th>
+            <th>Issue Multiple Items</th>
+          </tr>
+        </thead>
+        <tbody id="kitCheckCadetsTable"></tbody>
+      </table>
+    </div>
+
+    <h3>Items Selected for Issue</h3>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Cadet</th>
+            <th>Kit Type</th>
+            <th>Item Number Given</th>
+            <th>Issue</th>
+            <th>Remove</th>
+          </tr>
+        </thead>
+        <tbody id="eventIssueTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<section id="tempPasswordPage" class="page">
+  <section class="card">
+    <h2>Temporary Full Access Passwords</h2>
+
+    <div class="form-grid">
+      <input id="tempPassword" placeholder="Temporary password">
+      <input id="tempNote" placeholder="Who is it for?">
+      <input id="tempExpiry" type="datetime-local">
+    </div>
+
+    <button class="main-button" onclick="createTempPassword()">Create Temporary Password</button>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Password</th>
+            <th>Note</th>
+            <th>Expires</th>
+            <th>Active</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tempPasswordsTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
 </div>
+
+<div id="uniformRequestPage" class="main-content" style="display:none;">
+<header>
+  <h1>1384 Uniform Request</h1>
+  <p>Use this page to request replacement or new uniform.</p>
+  <button onclick="backHome()" class="logout-btn">Back</button>
+</header>
+
+<section class="card">
+  <h2>Request Uniform</h2>
+
+  <div class="form-grid">
+    <input id="uniformRequestCadetName" placeholder="Your name">
+
+    <select id="uniformRequestItem" onchange="updateUniformRequestSizeDropdown()">
+      <option value="">Select Item</option>
+    </select>
+
+    <select id="uniformRequestSize">
+      <option value="">Select Size</option>
+    </select>
+
+    <input id="uniformRequestReason" placeholder="Reason / notes">
+  </div>
+
+  <button class="main-button" onclick="submitUniformRequest()">Submit Request</button>
+  <p class="hint">This page only submits requests. It cannot access stock, issuing or history.</p>
+</section>
 </div>
 
-<script>
-let uniformStock=[];
-let atKit=[];
-let events=[];
-let issuedKit=[];
-let history=[];
-let tempPasswords=[];
-
-let selectedEvent=null;
-let selectedCadet=null;
-
-function escapeHtml(text){
-return String(text ?? "")
-.replaceAll("&","&amp;")
-.replaceAll("<","&lt;")
-.replaceAll(">","&gt;")
-.replaceAll('"',"&quot;")
-.replaceAll("'","&#039;");
-}
-
-function loadData(){
-uniformStock=JSON.parse(localStorage.getItem("uniformStock"))||[];
-atKit=JSON.parse(localStorage.getItem("atKit"))||[];
-events=JSON.parse(localStorage.getItem("events"))||[];
-issuedKit=JSON.parse(localStorage.getItem("issuedKit"))||[];
-history=JSON.parse(localStorage.getItem("history"))||[];
-tempPasswords=JSON.parse(localStorage.getItem("tempPasswords"))||[];
-}
-
-function saveData(){
-localStorage.setItem("uniformStock",JSON.stringify(uniformStock));
-localStorage.setItem("atKit",JSON.stringify(atKit));
-localStorage.setItem("events",JSON.stringify(events));
-localStorage.setItem("issuedKit",JSON.stringify(issuedKit));
-localStorage.setItem("history",JSON.stringify(history));
-localStorage.setItem("tempPasswords",JSON.stringify(tempPasswords));
-}
-
-function login(){
-const password=document.getElementById("loginPassword").value.trim();
-const tempMatch=tempPasswords.find(p=>p.password===password);
-
-if(password==="admin" || tempMatch){
-document.getElementById("loginPage").classList.remove("active");
-document.getElementById("mainNav").style.display="flex";
-showPage("uniformPage");
-}else{
-alert("Incorrect password");
-}
-}
-
-function logout(){
-document.getElementById("mainNav").style.display="none";
-document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-document.getElementById("loginPage").classList.add("active");
-}
-
-function showPage(id){
-document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-renderAll();
-}
-
-function addUniformStock(){
-const item=document.getElementById("uniformItem").value.trim();
-const size=document.getElementById("uniformSize").value.trim();
-const current=Number(document.getElementById("uniformCurrentStock").value);
-const minimum=Number(document.getElementById("uniformMinimumStock").value);
-
-if(!item || !size){
-alert("Enter item and size");
-return;
-}
-
-uniformStock.push({
-id:Date.now(),
-item,
-size,
-currentStock:isNaN(current)?0:current,
-minimumStock:isNaN(minimum)?0:minimum
-});
-
-saveData();
-
-document.getElementById("uniformItem").value="";
-document.getElementById("uniformSize").value="";
-document.getElementById("uniformCurrentStock").value="";
-document.getElementById("uniformMinimumStock").value="";
-
-renderUniformStock();
-}
-
-function renderUniformStock(){
-const table=document.getElementById("uniformStockTable");
-if(!table)return;
-
-table.innerHTML="";
-
-uniformStock.forEach((u,i)=>{
-let rowClass="ok";
-if(u.currentStock<=0)rowClass="out";
-else if(u.currentStock<=u.minimumStock)rowClass="low";
-
-table.innerHTML+=`
-<tr class="${rowClass}">
-<td>${escapeHtml(u.item)}</td>
-<td>${escapeHtml(u.size)}</td>
-<td>${escapeHtml(u.currentStock)}</td>
-<td>${escapeHtml(u.minimumStock)}</td>
-<td>
-<button onclick="changeUniformStock(${i},-1)">-1</button>
-<button onclick="changeUniformStock(${i},1)">+1</button>
-<button onclick="setUniformStock(${i})">Set</button>
-</td>
-<td><button onclick="deleteUniformStock(${i})">Delete</button></td>
-</tr>`;
-});
-}
-
-function changeUniformStock(index,amount){
-uniformStock[index].currentStock+=amount;
-if(uniformStock[index].currentStock<0)uniformStock[index].currentStock=0;
-saveData();
-renderUniformStock();
-}
-
-function setUniformStock(index){
-const value=prompt("Enter new stock number:",uniformStock[index].currentStock);
-if(value===null)return;
-
-const number=Number(value);
-if(isNaN(number)||number<0){
-alert("Enter a valid number");
-return;
-}
-
-uniformStock[index].currentStock=number;
-saveData();
-renderUniformStock();
-}
-
-function deleteUniformStock(index){
-if(!confirm("Delete this uniform item?"))return;
-uniformStock.splice(index,1);
-saveData();
-renderUniformStock();
-}
-
-function addATKit(){
-const type=document.getElementById("atKitType").value.trim();
-const itemNumber=document.getElementById("atItemNumber").value.trim();
-const size=document.getElementById("atKitSize").value.trim();
-
-if(!type || !itemNumber){
-alert("Enter kit type and item number");
-return;
-}
-
-atKit.push({
-id:Date.now(),
-type,
-itemNumber,
-size,
-status:"Available",
-borrowCount:0
-});
-
-saveData();
-
-document.getElementById("atKitType").value="";
-document.getElementById("atItemNumber").value="";
-document.getElementById("atKitSize").value="";
-
-renderAll();
-}
-
-function renderATKit(){
-const table=document.getElementById("atKitTable");
-if(!table)return;
-
-table.innerHTML="";
-
-atKit.forEach((k,i)=>{
-table.innerHTML+=`
-<tr>
-<td>${escapeHtml(k.type)}</td>
-<td>${escapeHtml(k.itemNumber)}</td>
-<td>${escapeHtml(k.size)}</td>
-<td>${escapeHtml(k.status)}</td>
-<td>${escapeHtml(k.borrowCount||0)}</td>
-<td><button onclick="deleteATKit(${i})">Delete</button></td>
-</tr>`;
-});
-}
-
-function deleteATKit(index){
-if(!confirm("Delete this AT kit item?"))return;
-atKit.splice(index,1);
-saveData();
-renderAll();
-}
-
-function getKitTypes(){
-return [...new Set(atKit.map(k=>k.type))].sort();
-}
-
-function renderEventKitCheckboxes(){
-const box=document.getElementById("eventKitCheckboxes");
-if(!box)return;
-
-box.innerHTML="";
-
-getKitTypes().forEach(type=>{
-box.innerHTML+=`
-<label class="checkbox-row">
-<input type="checkbox" class="eventKitCheck" value="${escapeHtml(type)}">
-${escapeHtml(type)}
-</label>`;
-});
-}
-
-function saveEvent(){
-const name=document.getElementById("eventName").value.trim();
-const date=document.getElementById("eventDate").value;
-const cadets=document.getElementById("eventCadets").value
-.split("\n").map(c=>c.trim()).filter(c=>c);
-
-const kitItems=[...document.querySelectorAll(".eventKitCheck:checked")].map(c=>c.value);
-
-if(!name){
-alert("Enter event name");
-return;
-}
-
-events.push({
-id:Date.now(),
-name,
-date,
-cadets,
-kitItems
-});
-
-saveData();
-
-document.getElementById("eventName").value="";
-document.getElementById("eventDate").value="";
-document.getElementById("eventCadets").value="";
-
-renderAll();
-}
-
-function renderEvents(){
-const table=document.getElementById("eventsTable");
-if(!table)return;
-
-table.innerHTML="";
-
-events.forEach((e,i)=>{
-table.innerHTML+=`
-<tr>
-<td>${escapeHtml(e.name)}</td>
-<td>${escapeHtml(e.date)}</td>
-<td>${e.cadets.length}</td>
-<td>${e.kitItems.map(escapeHtml).join(", ")}</td>
-<td><button onclick="deleteEvent(${i})">Delete</button></td>
-</tr>`;
-});
-}
-
-function deleteEvent(index){
-if(!confirm("Delete event?"))return;
-events.splice(index,1);
-saveData();
-renderAll();
-}
-
-function renderIssueDropdown(){
-const dropdown=document.getElementById("issueEventDropdown");
-if(!dropdown)return;
-
-const current=dropdown.value;
-dropdown.innerHTML=`<option value="">Select Event</option>`;
-
-events.forEach(e=>{
-dropdown.innerHTML+=`
-<option value="${e.id}">${escapeHtml(e.name)} ${e.date ? "- "+escapeHtml(e.date) : ""}</option>`;
-});
-
-dropdown.value=current;
-}
-
-function loadIssueEvent(){
-const id=document.getElementById("issueEventDropdown").value;
-selectedEvent=events.find(e=>String(e.id)===String(id));
-renderIssueCadets();
-renderIssuedKit();
-}
-
-function renderIssueCadets(){
-const table=document.getElementById("issueCadetsTable");
-if(!table)return;
-
-table.innerHTML="";
-
-if(!selectedEvent){
-table.innerHTML=`<tr><td colspan="2">Select an event first</td></tr>`;
-return;
-}
-
-selectedEvent.cadets.forEach(cadet=>{
-table.innerHTML+=`
-<tr>
-<td>${escapeHtml(cadet)}</td>
-<td><button onclick="openKitModal('${escapeHtml(cadet)}')">Select Kit</button></td>
-</tr>`;
-});
-}
-
-function openKitModal(cadet){
-selectedCadet=cadet;
-document.getElementById("modalCadetName").innerText="Issue kit to "+cadet;
-
-const checklist=document.getElementById("modalKitChecklist");
-checklist.innerHTML="";
-
-if(!selectedEvent || selectedEvent.kitItems.length===0){
-checklist.innerHTML="<p>No kit selected for this event.</p>";
-}else{
-selectedEvent.kitItems.forEach(item=>{
-checklist.innerHTML+=`
-<label class="checkbox-row">
-<input type="checkbox" class="modalKitCheck" value="${escapeHtml(item)}">
-${escapeHtml(item)}
-</label>`;
-});
-}
-
-document.getElementById("kitModal").style.display="block";
-}
-
-function closeKitModal(){
-document.getElementById("kitModal").style.display="none";
-selectedCadet=null;
-}
-
-function confirmKitForCadet(){
-const items=[...document.querySelectorAll(".modalKitCheck:checked")].map(c=>c.value);
-
-if(items.length===0){
-alert("Select at least one item");
-return;
-}
-
-items.forEach(item=>{
-issuedKit.push({
-id:Date.now()+Math.random(),
-eventId:selectedEvent.id,
-eventName:selectedEvent.name,
-cadet:selectedCadet,
-kitType:item,
-itemNumber:"",
-date:new Date().toLocaleDateString()
-});
-});
-
-saveData();
-closeKitModal();
-renderIssuedKit();
-}
-
-function renderIssuedKit(){
-const table=document.getElementById("issuedKitTable");
-if(!table)return;
-
-table.innerHTML="";
-
-let rows=issuedKit;
-
-if(selectedEvent){
-rows=issuedKit.filter(i=>String(i.eventId)===String(selectedEvent.id));
-}
-
-rows.forEach(entry=>{
-const index=issuedKit.findIndex(i=>i.id===entry.id);
-
-table.innerHTML+=`
-<tr>
-<td>${escapeHtml(entry.eventName)}</td>
-<td>${escapeHtml(entry.cadet)}</td>
-<td>${escapeHtml(entry.kitType)}</td>
-<td>
-<select onchange="assignItemNumber(${index},this.value)">
-<option value="">Select item number</option>
-${itemNumberOptions(entry.kitType,entry.itemNumber)}
-</select>
-</td>
-<td>${escapeHtml(entry.date)}</td>
-<td><button onclick="returnKit(${index})">Returned</button></td>
-</tr>`;
-});
-}
-
-function itemNumberOptions(type,selected){
-let html="";
-
-atKit.filter(k=>k.type===type).forEach(k=>{
-const alreadyUsed=issuedKit.some(i=>i.itemNumber===k.itemNumber && i.itemNumber!==selected);
-
-if(!alreadyUsed || k.itemNumber===selected){
-html+=`
-<option value="${escapeHtml(k.itemNumber)}" ${k.itemNumber===selected ? "selected" : ""}>
-${escapeHtml(k.itemNumber)} ${k.size ? "- "+escapeHtml(k.size) : ""}
-</option>`;
-}
-});
-
-return html;
-}
-
-function assignItemNumber(index,itemNumber){
-const oldNumber=issuedKit[index].itemNumber;
-issuedKit[index].itemNumber=itemNumber;
-
-if(itemNumber && oldNumber!==itemNumber){
-const item=atKit.find(k=>k.itemNumber===itemNumber);
-if(item){
-item.borrowCount=Number(item.borrowCount||0)+1;
-}
-
-history.push({
-date:new Date().toLocaleDateString(),
-eventName:issuedKit[index].eventName,
-cadet:issuedKit[index].cadet,
-kitType:issuedKit[index].kitType,
-itemNumber,
-action:"Issued"
-});
-}
-
-updateATStatuses();
-saveData();
-renderAll();
-}
-
-function returnKit(index){
-const item=issuedKit[index];
-
-if(!confirm("Mark this item as returned?"))return;
-
-history.push({
-date:new Date().toLocaleDateString(),
-eventName:item.eventName,
-cadet:item.cadet,
-kitType:item.kitType,
-itemNumber:item.itemNumber,
-action:"Returned"
-});
-
-issuedKit.splice(index,1);
-
-updateATStatuses();
-saveData();
-renderAll();
-}
-
-function updateATStatuses(){
-atKit.forEach(k=>{
-const used=issuedKit.some(i=>i.itemNumber===k.itemNumber);
-k.status=used ? "Issued" : "Available";
-});
-}
-
-function renderHistory(){
-const table=document.getElementById("historyTable");
-if(!table)return;
-
-table.innerHTML="";
-
-history.forEach(h=>{
-table.innerHTML+=`
-<tr>
-<td>${escapeHtml(h.date)}</td>
-<td>${escapeHtml(h.eventName)}</td>
-<td>${escapeHtml(h.cadet)}</td>
-<td>${escapeHtml(h.kitType)}</td>
-<td>${escapeHtml(h.itemNumber)}</td>
-<td>${escapeHtml(h.action)}</td>
-</tr>`;
-});
-}
-
-function createTempPassword(){
-const name=document.getElementById("tempPasswordName").value.trim();
-const password=document.getElementById("tempPasswordValue").value.trim();
-
-if(!password){
-alert("Enter a temporary password");
-return;
-}
-
-tempPasswords.push({
-id:Date.now(),
-name:name || "Temporary User",
-password,
-date:new Date().toLocaleDateString()
-});
-
-saveData();
-
-document.getElementById("tempPasswordName").value="";
-document.getElementById("tempPasswordValue").value="";
-
-renderTempPasswords();
-}
-
-function renderTempPasswords(){
-const table=document.getElementById("tempPasswordTable");
-if(!table)return;
-
-table.innerHTML="";
-
-tempPasswords.forEach((p,i)=>{
-table.innerHTML+=`
-<tr>
-<td>${escapeHtml(p.name)}</td>
-<td>${escapeHtml(p.password)}</td>
-<td>${escapeHtml(p.date)}</td>
-<td><button onclick="deleteTempPassword(${i})">Delete</button></td>
-</tr>`;
-});
-}
-
-function deleteTempPassword(index){
-tempPasswords.splice(index,1);
-saveData();
-renderTempPasswords();
-}
-
-function exportDatabase(){
-const data={
-uniformStock,
-atKit,
-events,
-issuedKit,
-history,
-tempPasswords
-};
-
-const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-const link=document.createElement("a");
-link.href=URL.createObjectURL(blob);
-link.download="uniform-at-kit-database.json";
-link.click();
-}
-
-function importDatabase(event){
-const file=event.target.files[0];
-if(!file)return;
-
-const reader=new FileReader();
-
-reader.onload=function(e){
-try{
-const data=JSON.parse(e.target.result);
-
-uniformStock=data.uniformStock||[];
-atKit=data.atKit||[];
-events=data.events||[];
-issuedKit=data.issuedKit||[];
-history=data.history||[];
-tempPasswords=data.tempPasswords||[];
-
-saveData();
-renderAll();
-
-alert("Database imported");
-}catch(err){
-alert("Import failed");
-}
-};
-
-reader.readAsText(file);
-}
-
-function clearDatabase(){
-if(!confirm("This will delete everything. Are you sure?"))return;
-
-uniformStock=[];
-atKit=[];
-events=[];
-issuedKit=[];
-history=[];
-tempPasswords=[];
-
-saveData();
-renderAll();
-
-alert("Database cleared");
-}
-
-function renderAll(){
-renderUniformStock();
-renderATKit();
-renderEventKitCheckboxes();
-renderEvents();
-renderIssueDropdown();
-renderIssueCadets();
-renderIssuedKit();
-renderHistory();
-renderTempPasswords();
-}
-
-window.addEventListener("DOMContentLoaded",function(){
-loadData();
-renderAll();
-});
-</script>
-
+<div id="atRequestPage" class="main-content" style="display:none;">
+<header>
+  <h1>1384 AT Kit Request</h1>
+  <p>Use this page to request AT kit for an activity.</p>
+  <button onclick="backHome()" class="logout-btn">Back</button>
+</header>
+
+<section class="card">
+  <h2>Request AT Kit</h2>
+
+  <div class="form-grid">
+    <input id="atRequestCadetName" placeholder="Your name">
+
+    <select id="atRequestActivity">
+      <option value="">Select Activity / Kit List</option>
+    </select>
+
+    <input id="atRequestNotes" placeholder="Notes">
+  </div>
+
+  <button class="main-button" onclick="submitATRequest()">Submit AT Kit Request</button>
+</section>
+</div>
+
+<div id="kitIssueModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h2 id="kitIssueCadetName">Issue Kit</h2>
+    <p>Select everything this cadet needs to borrow.</p>
+    <div id="kitIssueChecklist"></div>
+    <button onclick="confirmEventKitSelection()">OK</button>
+    <button onclick="closeKitIssueModal()">Cancel</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
