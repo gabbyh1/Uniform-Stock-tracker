@@ -257,13 +257,23 @@
         <option value="">Select Kit List</option>
       </select>
 
-      <input id="newKitListItem" placeholder="Kit item e.g. Rucksack">
+      <input id="newKitListItem" placeholder="Single kit item e.g. Rucksack">
+
       <select id="newKitListRequired">
         <option value="true">Required</option>
         <option value="false">Optional</option>
       </select>
 
-      <button class="main-button" onclick="addItemToKitList()">Add Item</button>
+      <button class="main-button" onclick="addItemToKitList()">Add Single Item</button>
+    </div>
+
+    <div class="bulk-box">
+      <h3>Bulk Add Kit Items</h3>
+      <p>Paste one item per line. The required/optional setting above will be applied to all pasted items.</p>
+
+      <textarea id="bulkKitListItems" placeholder="Rucksack&#10;Sleeping Bag&#10;Roll Mat&#10;Waterproof Jacket&#10;Waterproof Trousers"></textarea>
+
+      <button class="main-button" onclick="bulkAddItemsToKitList()">Bulk Add Items</button>
     </div>
 
     <div class="table-wrapper">
@@ -362,6 +372,6 @@
 </section>
 </div>
 
-<script src="./script.js?v=40"></script>
+<script src="./script.js?v=50"></script>
 </body>
 </html>
