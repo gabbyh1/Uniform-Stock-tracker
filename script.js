@@ -6,16 +6,23 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const STAFF_PASSWORD = "1384-Staff";
 
 let loggedInMode = null;
-let allStock = [];
-let allIssueHistory = [];
-let allRequests = [];
+
+let allUniformStock = [];
+let allUniformIssueHistory = [];
+let allUniformRequests = [];
+
+let allATKit = [];
+let allATIssueHistory = [];
+let allATRequests = [];
+
 let allTempPasswords = [];
 
 function hideAllScreens(){
   document.getElementById("homeScreen").style.display = "none";
   document.getElementById("staffLoginScreen").style.display = "none";
   document.getElementById("mainContent").style.display = "none";
-  document.getElementById("cadetRequestPage").style.display = "none";
+  document.getElementById("uniformRequestPage").style.display = "none";
+  document.getElementById("atRequestPage").style.display = "none";
 }
 
 function backHome(){
@@ -29,10 +36,16 @@ function openStaffLogin(){
   document.getElementById("staffLoginScreen").style.display = "flex";
 }
 
-async function openCadetRequest(){
+async function openUniformRequest(){
   hideAllScreens();
-  document.getElementById("cadetRequestPage").style.display = "block";
-  await loadStock();
+  document.getElementById("uniformRequestPage").style.display = "block";
+  await loadUniformStock();
+}
+
+async function openATRequest(){
+  hideAllScreens();
+  document.getElementById("atRequestPage").style.display = "block";
+  await loadATKit();
 }
 
 function logout(){
@@ -40,15 +53,7 @@ function logout(){
 }
 
 async function staffLogin(){
-
-  const passwordBox = document.getElementById("staffPasswordInput");
-
-  if(!passwordBox){
-    alert("Password box not found.");
-    return;
-  }
-
-  const enteredPassword = passwordBox.value.trim();
+  const enteredPassword = document.getElementById("staffPasswordInput").value.trim();
 
   if(enteredPassword === STAFF_PASSWORD){
     loggedInMode = "staff";
@@ -68,7 +73,6 @@ async function staffLogin(){
     }
 
     if(data && data.length > 0){
-
       const validPassword = data.find(p => new Date(p.expires_at) > new Date());
 
       if(validPassword){
@@ -77,7 +81,6 @@ async function staffLogin(){
         return;
       }
     }
-
   }catch(err){
     console.log(err);
   }
@@ -86,7 +89,6 @@ async function staffLogin(){
 }
 
 async function openFullSite(label){
-
   hideAllScreens();
 
   document.getElementById("mainContent").style.display = "block";
@@ -96,26 +98,39 @@ async function openFullSite(label){
 
   if(loggedInMode === "staff"){
     pageSelect.innerHTML = `
-      <option value="stockPage">Current Stock</option>
-      <option value="issuePage">Issue Uniform</option>
-      <option value="historyPage">Issue History</option>
-      <option value="requestsPage">Uniform Requests</option>
+      <option value="uniformStockPage">Uniform - Current Stock</option>
+      <option value="uniformIssuePage">Uniform - Issue Kit</option>
+      <option value="uniformHistoryPage">Uniform - Issue History</option>
+      <option value="uniformRequestsPage">Uniform - Requests</option>
+      <option value="atStockPage">AT Kit - Current Kit</option>
+      <option value="atIssuePage">AT Kit - Issue Kit</option>
+      <option value="atReturnPage">AT Kit - Return Kit</option>
+      <option value="atHistoryPage">AT Kit - Issue History</option>
+      <option value="atRequestsPage">AT Kit - Requests</option>
       <option value="tempPasswordPage">Temporary Passwords</option>
     `;
   } else {
     pageSelect.innerHTML = `
-      <option value="stockPage">Current Stock</option>
-      <option value="issuePage">Issue Uniform</option>
-      <option value="historyPage">Issue History</option>
-      <option value="requestsPage">Uniform Requests</option>
+      <option value="uniformStockPage">Uniform - Current Stock</option>
+      <option value="uniformIssuePage">Uniform - Issue Kit</option>
+      <option value="uniformHistoryPage">Uniform - Issue History</option>
+      <option value="uniformRequestsPage">Uniform - Requests</option>
+      <option value="atStockPage">AT Kit - Current Kit</option>
+      <option value="atIssuePage">AT Kit - Issue Kit</option>
+      <option value="atReturnPage">AT Kit - Return Kit</option>
+      <option value="atHistoryPage">AT Kit - Issue History</option>
+      <option value="atRequestsPage">AT Kit - Requests</option>
     `;
   }
 
-  pageSelect.value = "stockPage";
+  pageSelect.value = "uniformStockPage";
 
-  await loadStock();
-  await loadIssueHistory();
-  await loadRequests();
+  await loadUniformStock();
+  await loadUniformIssueHistory();
+  await loadUniformRequests();
+  await loadATKit();
+  await loadATIssueHistory();
+  await loadATRequests();
 
   if(loggedInMode === "staff"){
     await loadTemporaryPasswords();
@@ -125,7 +140,6 @@ async function openFullSite(label){
 }
 
 function changePage(){
-
   document.querySelectorAll(".page").forEach(page => {
     page.classList.remove("active-page");
   });
@@ -134,17 +148,17 @@ function changePage(){
 
   if(loggedInMode !== "staff" && selected === "tempPasswordPage"){
     alert("Only the staff account can access temporary passwords.");
-    document.getElementById("pageSelect").value = "stockPage";
-    document.getElementById("stockPage").classList.add("active-page");
+    document.getElementById("pageSelect").value = "uniformStockPage";
+    document.getElementById("uniformStockPage").classList.add("active-page");
     return;
   }
 
   document.getElementById(selected).classList.add("active-page");
 }
 
-/* STOCK */
+/* UNIFORM STOCK */
 
-async function loadStock(){
+async function loadUniformStock(){
   const { data, error } = await supabaseClient
     .from("uniform_stock")
     .select("*")
@@ -152,24 +166,23 @@ async function loadStock(){
 
   if(error){
     console.log(error);
-    alert("Error loading stock");
+    alert("Error loading uniform stock");
     return;
   }
 
-  allStock = data || [];
-
-  displayStock(allStock);
-  populateItemDropdowns();
+  allUniformStock = data || [];
+  displayUniformStock(allUniformStock);
+  populateUniformDropdowns();
 }
 
-function displayStock(stock){
-  const table = document.getElementById("stockTable");
+function displayUniformStock(stock){
+  const table = document.getElementById("uniformStockTable");
   if(!table) return;
 
   table.innerHTML = "";
 
   if(!stock || stock.length === 0){
-    table.innerHTML = `<tr><td colspan="4" class="no-data">No stock found</td></tr>`;
+    table.innerHTML = `<tr><td colspan="4" class="no-data">No uniform stock found</td></tr>`;
     return;
   }
 
@@ -187,28 +200,24 @@ function displayStock(stock){
   });
 }
 
-function searchStock(){
-  const search = document.getElementById("searchInput").value.toLowerCase();
+function searchUniformStock(){
+  const search = document.getElementById("uniformSearchInput").value.toLowerCase();
 
-  const filtered = allStock.filter(item =>
+  const filtered = allUniformStock.filter(item =>
     item.item?.toLowerCase().includes(search) ||
     item.size?.toLowerCase().includes(search) ||
     item.box_number?.toString().toLowerCase().includes(search)
   );
 
-  displayStock(filtered);
+  displayUniformStock(filtered);
 }
 
-/* DROPDOWNS */
-
-function populateItemDropdowns(){
-  const uniqueItems = [...new Set(allStock.map(x => x.item))]
+function populateUniformDropdowns(){
+  const uniqueItems = [...new Set(allUniformStock.map(x => x.item))]
     .filter(Boolean)
     .sort();
 
-  const dropdownIds = ["issueItem", "requestItem"];
-
-  dropdownIds.forEach(id => {
+  ["uniformIssueItem", "uniformRequestItem"].forEach(id => {
     const dropdown = document.getElementById(id);
     if(!dropdown) return;
 
@@ -220,13 +229,13 @@ function populateItemDropdowns(){
   });
 }
 
-function updateIssueSizeDropdown(){
-  const item = document.getElementById("issueItem").value;
-  const sizeDropdown = document.getElementById("issueSize");
+function updateUniformIssueSizeDropdown(){
+  const item = document.getElementById("uniformIssueItem").value;
+  const sizeDropdown = document.getElementById("uniformIssueSize");
 
   sizeDropdown.innerHTML = `<option value="">Select Size</option>`;
 
-  const sizes = [...new Set(allStock.filter(x => x.item === item).map(x => x.size))]
+  const sizes = [...new Set(allUniformStock.filter(x => x.item === item).map(x => x.size))]
     .filter(Boolean)
     .sort();
 
@@ -234,16 +243,16 @@ function updateIssueSizeDropdown(){
     sizeDropdown.innerHTML += `<option value="${escapeHtml(size)}">${escapeHtml(size)}</option>`;
   });
 
-  updateBoxInfo();
+  updateUniformBoxInfo();
 }
 
-function updateRequestSizeDropdown(){
-  const item = document.getElementById("requestItem").value;
-  const sizeDropdown = document.getElementById("requestSize");
+function updateUniformRequestSizeDropdown(){
+  const item = document.getElementById("uniformRequestItem").value;
+  const sizeDropdown = document.getElementById("uniformRequestSize");
 
   sizeDropdown.innerHTML = `<option value="">Select Size</option>`;
 
-  const sizes = [...new Set(allStock.filter(x => x.item === item).map(x => x.size))]
+  const sizes = [...new Set(allUniformStock.filter(x => x.item === item).map(x => x.size))]
     .filter(Boolean)
     .sort();
 
@@ -252,17 +261,17 @@ function updateRequestSizeDropdown(){
   });
 }
 
-function updateBoxInfo(){
-  const item = document.getElementById("issueItem").value;
-  const size = document.getElementById("issueSize").value;
-  const box = document.getElementById("selectedStockInfo");
+function updateUniformBoxInfo(){
+  const item = document.getElementById("uniformIssueItem").value;
+  const size = document.getElementById("uniformIssueSize").value;
+  const box = document.getElementById("uniformSelectedStockInfo");
 
   if(!item || !size){
     box.innerHTML = "Select an item and size.";
     return;
   }
 
-  const matches = allStock.filter(x => x.item === item && x.size === size);
+  const matches = allUniformStock.filter(x => x.item === item && x.size === size);
   const total = matches.reduce((sum, x) => sum + Number(x.quantity || 0), 0);
 
   box.innerHTML = `
@@ -272,25 +281,23 @@ function updateBoxInfo(){
   `;
 }
 
-/* ISSUE UNIFORM */
-
 async function issueUniform(){
   if(!loggedInMode){
     alert("You do not have permission.");
     return;
   }
 
-  const cadetName = document.getElementById("issueCadetName").value.trim();
-  const item = document.getElementById("issueItem").value;
-  const size = document.getElementById("issueSize").value;
-  const qty = parseInt(document.getElementById("issueQty").value);
+  const cadetName = document.getElementById("uniformIssueCadetName").value.trim();
+  const item = document.getElementById("uniformIssueItem").value;
+  const size = document.getElementById("uniformIssueSize").value;
+  const qty = parseInt(document.getElementById("uniformIssueQty").value);
 
   if(!cadetName || !item || !size || !qty || qty < 1){
     alert("Complete all fields.");
     return;
   }
 
-  const matchingStock = allStock
+  const matchingStock = allUniformStock
     .filter(x => x.item === item && x.size === size && Number(x.quantity) > 0)
     .sort((a,b) => Number(b.quantity) - Number(a.quantity));
 
@@ -313,7 +320,7 @@ async function issueUniform(){
       .eq("id", stockLine.id);
 
     if(updateError){
-      alert("Error updating stock.");
+      alert("Error updating uniform stock.");
       return;
     }
 
@@ -331,8 +338,8 @@ async function issueUniform(){
   }
 
   if(remaining > 0){
-    alert("Not enough stock available.");
-    await loadStock();
+    alert("Not enough uniform stock available.");
+    await loadUniformStock();
     return;
   }
 
@@ -341,24 +348,22 @@ async function issueUniform(){
     .insert(issueRecords);
 
   if(insertError){
-    alert("Stock updated but issue history failed.");
+    alert("Stock updated but uniform issue history failed.");
     return;
   }
 
   alert("Uniform issued successfully.");
 
-  document.getElementById("issueCadetName").value = "";
-  document.getElementById("issueItem").value = "";
-  document.getElementById("issueSize").innerHTML = `<option value="">Select Size</option>`;
-  document.getElementById("issueQty").value = 1;
+  document.getElementById("uniformIssueCadetName").value = "";
+  document.getElementById("uniformIssueItem").value = "";
+  document.getElementById("uniformIssueSize").innerHTML = `<option value="">Select Size</option>`;
+  document.getElementById("uniformIssueQty").value = 1;
 
-  await loadStock();
-  await loadIssueHistory();
+  await loadUniformStock();
+  await loadUniformIssueHistory();
 }
 
-/* ISSUE HISTORY */
-
-async function loadIssueHistory(){
+async function loadUniformIssueHistory(){
   const { data, error } = await supabaseClient
     .from("uniform_issues")
     .select("*")
@@ -369,18 +374,18 @@ async function loadIssueHistory(){
     return;
   }
 
-  allIssueHistory = data || [];
-  displayIssueHistory(allIssueHistory);
+  allUniformIssueHistory = data || [];
+  displayUniformIssueHistory(allUniformIssueHistory);
 }
 
-function displayIssueHistory(history){
-  const table = document.getElementById("issueHistoryTable");
+function displayUniformIssueHistory(history){
+  const table = document.getElementById("uniformIssueHistoryTable");
   if(!table) return;
 
   table.innerHTML = "";
 
   if(history.length === 0){
-    table.innerHTML = `<tr><td colspan="7" class="no-data">No issue history found</td></tr>`;
+    table.innerHTML = `<tr><td colspan="7" class="no-data">No uniform issue history found</td></tr>`;
     return;
   }
 
@@ -392,33 +397,31 @@ function displayIssueHistory(history){
         <td>${escapeHtml(r.size || "")}</td>
         <td>${escapeHtml(r.box_number || "")}</td>
         <td>${r.quantity || ""}</td>
-        <td>${r.issue_date || ""}</td>
+        <td>${formatDate(r.issue_date)}</td>
         <td>${r.returned ? "Yes" : "No"}</td>
       </tr>
     `;
   });
 }
 
-function searchIssueHistory(){
-  const search = document.getElementById("historySearchInput").value.toLowerCase();
+function searchUniformIssueHistory(){
+  const search = document.getElementById("uniformHistorySearchInput").value.toLowerCase();
 
-  const filtered = allIssueHistory.filter(r =>
+  const filtered = allUniformIssueHistory.filter(r =>
     r.cadet_name?.toLowerCase().includes(search) ||
     r.item?.toLowerCase().includes(search) ||
     r.size?.toLowerCase().includes(search) ||
     r.box_number?.toString().toLowerCase().includes(search)
   );
 
-  displayIssueHistory(filtered);
+  displayUniformIssueHistory(filtered);
 }
 
-/* REQUESTS */
-
 async function submitUniformRequest(){
-  const cadetName = document.getElementById("requestCadetName").value.trim();
-  const item = document.getElementById("requestItem").value;
-  const size = document.getElementById("requestSize").value;
-  const reason = document.getElementById("requestReason").value.trim();
+  const cadetName = document.getElementById("uniformRequestCadetName").value.trim();
+  const item = document.getElementById("uniformRequestItem").value;
+  const size = document.getElementById("uniformRequestSize").value;
+  const reason = document.getElementById("uniformRequestReason").value.trim();
 
   if(!cadetName || !item || !size){
     alert("Please complete your name, item and size.");
@@ -437,19 +440,19 @@ async function submitUniformRequest(){
 
   if(error){
     console.log(error);
-    alert("Request failed.");
+    alert("Uniform request failed.");
     return;
   }
 
-  alert("Request submitted successfully.");
+  alert("Uniform request submitted successfully.");
 
-  document.getElementById("requestCadetName").value = "";
-  document.getElementById("requestItem").value = "";
-  document.getElementById("requestSize").innerHTML = `<option value="">Select Size</option>`;
-  document.getElementById("requestReason").value = "";
+  document.getElementById("uniformRequestCadetName").value = "";
+  document.getElementById("uniformRequestItem").value = "";
+  document.getElementById("uniformRequestSize").innerHTML = `<option value="">Select Size</option>`;
+  document.getElementById("uniformRequestReason").value = "";
 }
 
-async function loadRequests(){
+async function loadUniformRequests(){
   const { data, error } = await supabaseClient
     .from("uniform_requests")
     .select("*")
@@ -460,22 +463,22 @@ async function loadRequests(){
     return;
   }
 
-  allRequests = data || [];
-  displayRequests();
+  allUniformRequests = data || [];
+  displayUniformRequests();
 }
 
-function displayRequests(){
-  const table = document.getElementById("requestsTable");
+function displayUniformRequests(){
+  const table = document.getElementById("uniformRequestsTable");
   if(!table) return;
 
   table.innerHTML = "";
 
-  if(allRequests.length === 0){
-    table.innerHTML = `<tr><td colspan="7" class="no-data">No requests found</td></tr>`;
+  if(allUniformRequests.length === 0){
+    table.innerHTML = `<tr><td colspan="7" class="no-data">No uniform requests found</td></tr>`;
     return;
   }
 
-  allRequests.forEach(r => {
+  allUniformRequests.forEach(r => {
     table.innerHTML += `
       <tr>
         <td>${escapeHtml(r.cadet_name)}</td>
@@ -485,15 +488,15 @@ function displayRequests(){
         <td>${escapeHtml(r.status)}</td>
         <td>${formatDate(r.requested_at)}</td>
         <td>
-          <button class="small-btn approve-btn" onclick="updateRequestStatus(${r.id}, 'Approved')">Approve</button>
-          <button class="small-btn reject-btn" onclick="updateRequestStatus(${r.id}, 'Rejected')">Reject</button>
+          <button class="small-btn approve-btn" onclick="updateUniformRequestStatus(${r.id}, 'Approved')">Approve</button>
+          <button class="small-btn reject-btn" onclick="updateUniformRequestStatus(${r.id}, 'Rejected')">Reject</button>
         </td>
       </tr>
     `;
   });
 }
 
-async function updateRequestStatus(id, status){
+async function updateUniformRequestStatus(id, status){
   const { error } = await supabaseClient
     .from("uniform_requests")
     .update({
@@ -504,17 +507,479 @@ async function updateRequestStatus(id, status){
     .eq("id", id);
 
   if(error){
-    alert("Could not update request.");
+    alert("Could not update uniform request.");
     return;
   }
 
-  await loadRequests();
+  await loadUniformRequests();
+}
+
+/* AT KIT */
+
+async function loadATKit(){
+  const { data, error } = await supabaseClient
+    .from("at_kit")
+    .select("*")
+    .order("kit_type", { ascending:true });
+
+  if(error){
+    console.log(error);
+    return;
+  }
+
+  allATKit = data || [];
+  displayATKit(allATKit);
+  populateATDropdowns();
+}
+
+function displayATKit(kit){
+  const table = document.getElementById("atKitTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(!kit || kit.length === 0){
+    table.innerHTML = `<tr><td colspan="7" class="no-data">No AT kit found</td></tr>`;
+    return;
+  }
+
+  kit.forEach(item => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(item.kit_type || "")}</td>
+        <td>${escapeHtml(item.kit_number || "")}</td>
+        <td>${escapeHtml(item.size || "")}</td>
+        <td>${escapeHtml(item.condition || "")}</td>
+        <td>${escapeHtml(item.status || "")}</td>
+        <td>${escapeHtml(item.location || "")}</td>
+        <td>${escapeHtml(item.notes || "")}</td>
+      </tr>
+    `;
+  });
+}
+
+function searchATKit(){
+  const search = document.getElementById("atSearchInput").value.toLowerCase();
+
+  const filtered = allATKit.filter(item =>
+    item.kit_type?.toLowerCase().includes(search) ||
+    item.kit_number?.toLowerCase().includes(search) ||
+    item.status?.toLowerCase().includes(search) ||
+    item.location?.toLowerCase().includes(search)
+  );
+
+  displayATKit(filtered);
+}
+
+async function addATKit(){
+  if(loggedInMode !== "staff"){
+    alert("Only staff can add AT kit.");
+    return;
+  }
+
+  const kitType = document.getElementById("newATType").value.trim();
+  const kitNumber = document.getElementById("newATNumber").value.trim();
+  const size = document.getElementById("newATSize").value.trim();
+  const location = document.getElementById("newATLocation").value.trim();
+  const description = document.getElementById("newATDescription").value.trim();
+  const condition = document.getElementById("newATCondition").value.trim() || "Good";
+  const notes = document.getElementById("newATNotes").value.trim();
+
+  if(!kitType || !kitNumber){
+    alert("Kit type and kit number are required.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("at_kit")
+    .insert([{
+      kit_type:kitType,
+      kit_number:kitNumber,
+      size,
+      location,
+      description,
+      condition,
+      notes,
+      status:"Available"
+    }]);
+
+  if(error){
+    console.log(error);
+    alert("Could not add AT kit. Check the kit number is not already used.");
+    return;
+  }
+
+  alert("AT kit added.");
+
+  document.getElementById("newATType").value = "";
+  document.getElementById("newATNumber").value = "";
+  document.getElementById("newATSize").value = "";
+  document.getElementById("newATLocation").value = "";
+  document.getElementById("newATDescription").value = "";
+  document.getElementById("newATCondition").value = "Good";
+  document.getElementById("newATNotes").value = "";
+
+  await loadATKit();
+}
+
+function populateATDropdowns(){
+  const kitTypes = [...new Set(allATKit.map(x => x.kit_type))]
+    .filter(Boolean)
+    .sort();
+
+  ["atIssueKitType", "atRequestKitType"].forEach(id => {
+    const dropdown = document.getElementById(id);
+    if(!dropdown) return;
+
+    dropdown.innerHTML = `<option value="">Select Kit Type</option>`;
+
+    kitTypes.forEach(type => {
+      dropdown.innerHTML += `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`;
+    });
+  });
+
+  populateATReturnDropdown();
+}
+
+function updateATNumberDropdown(){
+  const kitType = document.getElementById("atIssueKitType").value;
+  const numberDropdown = document.getElementById("atIssueKitNumber");
+
+  numberDropdown.innerHTML = `<option value="">Select Kit Number</option>`;
+
+  const availableKit = allATKit
+    .filter(x => x.kit_type === kitType && x.status === "Available")
+    .sort((a,b) => a.kit_number.localeCompare(b.kit_number));
+
+  availableKit.forEach(item => {
+    numberDropdown.innerHTML += `<option value="${item.id}">${escapeHtml(item.kit_number)}</option>`;
+  });
+
+  updateATKitInfo();
+}
+
+function updateATKitInfo(){
+  const kitId = document.getElementById("atIssueKitNumber").value;
+  const box = document.getElementById("atSelectedKitInfo");
+
+  const item = allATKit.find(x => String(x.id) === String(kitId));
+
+  if(!item){
+    box.innerHTML = "Select an AT kit type and kit number.";
+    return;
+  }
+
+  box.innerHTML = `
+    <strong>Type:</strong> ${escapeHtml(item.kit_type)}<br>
+    <strong>Number:</strong> ${escapeHtml(item.kit_number)}<br>
+    <strong>Size:</strong> ${escapeHtml(item.size || "")}<br>
+    <strong>Condition:</strong> ${escapeHtml(item.condition || "")}<br>
+    <strong>Location:</strong> ${escapeHtml(item.location || "")}
+  `;
+}
+
+async function issueATKit(){
+  if(!loggedInMode){
+    alert("You do not have permission.");
+    return;
+  }
+
+  const cadetName = document.getElementById("atIssueCadetName").value.trim();
+  const kitId = document.getElementById("atIssueKitNumber").value;
+  const notes = document.getElementById("atIssueNotes").value.trim();
+
+  const item = allATKit.find(x => String(x.id) === String(kitId));
+
+  if(!cadetName || !item){
+    alert("Complete cadet name and select kit.");
+    return;
+  }
+
+  if(item.status !== "Available"){
+    alert("This kit is not available.");
+    return;
+  }
+
+  const { error:updateError } = await supabaseClient
+    .from("at_kit")
+    .update({
+      status:"Issued",
+      updated_at:new Date().toISOString()
+    })
+    .eq("id", item.id);
+
+  if(updateError){
+    alert("Could not update AT kit status.");
+    return;
+  }
+
+  const { error:insertError } = await supabaseClient
+    .from("at_kit_issues")
+    .insert([{
+      kit_id:item.id,
+      kit_type:item.kit_type,
+      kit_number:item.kit_number,
+      cadet_name:cadetName,
+      issued_by: loggedInMode === "staff" ? "Staff Account" : "Temporary Access",
+      returned:false,
+      notes
+    }]);
+
+  if(insertError){
+    alert("Kit marked as issued but history did not save.");
+    return;
+  }
+
+  alert("AT kit issued.");
+
+  document.getElementById("atIssueCadetName").value = "";
+  document.getElementById("atIssueKitType").value = "";
+  document.getElementById("atIssueKitNumber").innerHTML = `<option value="">Select Kit Number</option>`;
+  document.getElementById("atIssueNotes").value = "";
+
+  await loadATKit();
+  await loadATIssueHistory();
+}
+
+function populateATReturnDropdown(){
+  const dropdown = document.getElementById("atReturnKitNumber");
+  if(!dropdown) return;
+
+  dropdown.innerHTML = `<option value="">Select Issued Kit Number</option>`;
+
+  allATIssueHistory
+    .filter(x => !x.returned)
+    .sort((a,b) => a.kit_number.localeCompare(b.kit_number))
+    .forEach(issue => {
+      dropdown.innerHTML += `<option value="${issue.id}">${escapeHtml(issue.kit_number)} - ${escapeHtml(issue.cadet_name)}</option>`;
+    });
+}
+
+function updateATReturnInfo(){
+  const issueId = document.getElementById("atReturnKitNumber").value;
+  const box = document.getElementById("atReturnInfo");
+
+  const issue = allATIssueHistory.find(x => String(x.id) === String(issueId));
+
+  if(!issue){
+    box.innerHTML = "Select issued kit to return.";
+    return;
+  }
+
+  box.innerHTML = `
+    <strong>Cadet:</strong> ${escapeHtml(issue.cadet_name)}<br>
+    <strong>Type:</strong> ${escapeHtml(issue.kit_type)}<br>
+    <strong>Number:</strong> ${escapeHtml(issue.kit_number)}<br>
+    <strong>Issued:</strong> ${formatDate(issue.issue_date)}
+  `;
+}
+
+async function returnATKit(){
+  if(!loggedInMode){
+    alert("You do not have permission.");
+    return;
+  }
+
+  const issueId = document.getElementById("atReturnKitNumber").value;
+  const condition = document.getElementById("atReturnCondition").value.trim();
+  const notes = document.getElementById("atReturnNotes").value.trim();
+
+  const issue = allATIssueHistory.find(x => String(x.id) === String(issueId));
+
+  if(!issue){
+    alert("Select issued kit to return.");
+    return;
+  }
+
+  const { error:updateIssueError } = await supabaseClient
+    .from("at_kit_issues")
+    .update({
+      returned:true,
+      return_date:new Date().toISOString(),
+      return_condition:condition,
+      notes
+    })
+    .eq("id", issue.id);
+
+  if(updateIssueError){
+    alert("Could not update issue history.");
+    return;
+  }
+
+  const { error:updateKitError } = await supabaseClient
+    .from("at_kit")
+    .update({
+      status:"Available",
+      condition:condition,
+      updated_at:new Date().toISOString()
+    })
+    .eq("id", issue.kit_id);
+
+  if(updateKitError){
+    alert("Return recorded but kit status did not update.");
+    return;
+  }
+
+  alert("AT kit returned.");
+
+  document.getElementById("atReturnKitNumber").value = "";
+  document.getElementById("atReturnCondition").value = "Good";
+  document.getElementById("atReturnNotes").value = "";
+
+  await loadATKit();
+  await loadATIssueHistory();
+}
+
+async function loadATIssueHistory(){
+  const { data, error } = await supabaseClient
+    .from("at_kit_issues")
+    .select("*")
+    .order("issue_date", { ascending:false });
+
+  if(error){
+    console.log(error);
+    return;
+  }
+
+  allATIssueHistory = data || [];
+  displayATIssueHistory(allATIssueHistory);
+  populateATReturnDropdown();
+}
+
+function displayATIssueHistory(history){
+  const table = document.getElementById("atIssueHistoryTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(history.length === 0){
+    table.innerHTML = `<tr><td colspan="7" class="no-data">No AT issue history found</td></tr>`;
+    return;
+  }
+
+  history.forEach(r => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(r.cadet_name || "")}</td>
+        <td>${escapeHtml(r.kit_type || "")}</td>
+        <td>${escapeHtml(r.kit_number || "")}</td>
+        <td>${formatDate(r.issue_date)}</td>
+        <td>${r.returned ? "Yes" : "No"}</td>
+        <td>${formatDate(r.return_date)}</td>
+        <td>${escapeHtml(r.return_condition || "")}</td>
+      </tr>
+    `;
+  });
+}
+
+function searchATIssueHistory(){
+  const search = document.getElementById("atHistorySearchInput").value.toLowerCase();
+
+  const filtered = allATIssueHistory.filter(r =>
+    r.cadet_name?.toLowerCase().includes(search) ||
+    r.kit_type?.toLowerCase().includes(search) ||
+    r.kit_number?.toLowerCase().includes(search)
+  );
+
+  displayATIssueHistory(filtered);
+}
+
+async function submitATRequest(){
+  const cadetName = document.getElementById("atRequestCadetName").value.trim();
+  const kitType = document.getElementById("atRequestKitType").value;
+  const reason = document.getElementById("atRequestReason").value.trim();
+
+  if(!cadetName || !kitType){
+    alert("Please complete your name and kit type.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("at_kit_requests")
+    .insert([{
+      cadet_name:cadetName,
+      kit_type:kitType,
+      reason,
+      status:"Pending"
+    }]);
+
+  if(error){
+    console.log(error);
+    alert("AT kit request failed.");
+    return;
+  }
+
+  alert("AT kit request submitted successfully.");
+
+  document.getElementById("atRequestCadetName").value = "";
+  document.getElementById("atRequestKitType").value = "";
+  document.getElementById("atRequestReason").value = "";
+}
+
+async function loadATRequests(){
+  const { data, error } = await supabaseClient
+    .from("at_kit_requests")
+    .select("*")
+    .order("requested_at", { ascending:false });
+
+  if(error){
+    console.log(error);
+    return;
+  }
+
+  allATRequests = data || [];
+  displayATRequests();
+}
+
+function displayATRequests(){
+  const table = document.getElementById("atRequestsTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(allATRequests.length === 0){
+    table.innerHTML = `<tr><td colspan="6" class="no-data">No AT requests found</td></tr>`;
+    return;
+  }
+
+  allATRequests.forEach(r => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(r.cadet_name)}</td>
+        <td>${escapeHtml(r.kit_type)}</td>
+        <td>${escapeHtml(r.reason || "")}</td>
+        <td>${escapeHtml(r.status)}</td>
+        <td>${formatDate(r.requested_at)}</td>
+        <td>
+          <button class="small-btn approve-btn" onclick="updateATRequestStatus(${r.id}, 'Approved')">Approve</button>
+          <button class="small-btn reject-btn" onclick="updateATRequestStatus(${r.id}, 'Rejected')">Reject</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function updateATRequestStatus(id, status){
+  const { error } = await supabaseClient
+    .from("at_kit_requests")
+    .update({
+      status,
+      reviewed_by: loggedInMode === "staff" ? "Staff Account" : "Temporary Access",
+      reviewed_at:new Date().toISOString()
+    })
+    .eq("id", id);
+
+  if(error){
+    alert("Could not update AT request.");
+    return;
+  }
+
+  await loadATRequests();
 }
 
 /* TEMP PASSWORDS */
 
 async function createTempPassword(){
-
   if(loggedInMode !== "staff"){
     alert("Only the staff account can create temporary passwords.");
     return;
@@ -553,7 +1018,6 @@ async function createTempPassword(){
 }
 
 async function loadTemporaryPasswords(){
-
   if(loggedInMode !== "staff"){
     return;
   }
@@ -601,7 +1065,6 @@ function displayTemporaryPasswords(){
 }
 
 async function disableTempPassword(id){
-
   if(loggedInMode !== "staff"){
     alert("Only staff can disable temporary passwords.");
     return;
