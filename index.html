@@ -3,53 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>1384 Uniform & AT Kit System</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>RAFAC Kit & Uniform System</title>
+  <link rel="stylesheet" href="style.css?v=100" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-<div id="homeScreen" class="login-screen">
-  <div class="login-box">
+<div id="homePage" class="screen active">
+  <div class="login-card">
+    <div class="rafac-badge">RAFAC</div>
     <h1>1384 Kit System</h1>
-    <p>Choose what you need to access.</p>
-    <button onclick="openCadetUniformPortal()">Cadet Uniform Request</button>
-    <button onclick="openCadetATPortal()">Cadet AT Kit Request</button>
-    <button onclick="openStaffLogin()">Staff Login</button>
+    <p>Uniform and Adventure Training kit management</p>
+
+    <button onclick="showCadetUniformPortal()">Cadet Uniform Request</button>
+    <button onclick="showCadetATPortal()">Cadet AT Kit Request</button>
+    <button onclick="showStaffLogin()">Staff Login</button>
   </div>
 </div>
 
-<div id="staffLoginScreen" class="login-screen hidden">
-  <div class="login-box">
+<div id="staffLoginPage" class="screen">
+  <div class="login-card">
+    <div class="rafac-badge">RAFAC</div>
     <h1>Staff Login</h1>
-    <input id="staffPasswordInput" type="password" placeholder="Enter staff or temporary password" onkeydown="if(event.key==='Enter') staffLogin()" />
-    <button onclick="staffLogin()">Login</button>
-    <button class="secondary-btn" onclick="backHome()">Back</button>
+    <input id="staffPassword" type="password" placeholder="Enter staff password" onkeydown="if(event.key==='Enter') loginStaff()" />
+    <button onclick="loginStaff()">Login</button>
+    <button class="secondary" onclick="goHome()">Back</button>
+    <p class="hint">Default password: <b>1384-Staff</b></p>
   </div>
 </div>
 
-<div id="staffApp" class="app hidden">
+<div id="staffApp" class="app">
   <header>
     <div>
-      <h1>1384 Uniform & AT Kit System</h1>
-      <p id="loggedInLabel">Staff access</p>
+      <h1>1384 RAFAC Kit System</h1>
+      <p id="loginStatus">Staff access</p>
     </div>
-    <button class="logout-btn" onclick="logout()">Logout</button>
+    <button class="danger" onclick="logout()">Logout</button>
   </header>
 
-  <nav class="page-menu">
+  <nav>
     <button onclick="showStaffPage('uniformStockPage')">Uniform Stock</button>
-    <button onclick="showStaffPage('uniformIssuedPage')">Uniform Issued</button>
+    <button onclick="showStaffPage('uniformIssuedPage')">Issued Uniform</button>
     <button onclick="showStaffPage('uniformRequestsPage')">Uniform Requests</button>
     <button onclick="showStaffPage('atStockPage')">AT Kit Stock</button>
-    <button onclick="showStaffPage('atIssuePage')">AT Kit Issue</button>
+    <button onclick="showStaffPage('atIssuePage')">Issue AT Kit</button>
     <button onclick="showStaffPage('kitListPage')">Kit List Creator</button>
     <button onclick="showStaffPage('eventIssuePage')">Event Issue Sheet</button>
     <button onclick="showStaffPage('kitCheckerPage')">Kit Checker</button>
     <button onclick="showStaffPage('serviceabilityPage')">Serviceability</button>
     <button onclick="showStaffPage('atRequestsPage')">AT Requests</button>
-    <button onclick="showStaffPage('tempPasswordPage')">Temporary Passwords</button>
+    <button onclick="showStaffPage('tempPasswordPage')">Temp Passwords</button>
   </nav>
 
   <main>
@@ -57,32 +61,26 @@
     <section id="uniformStockPage" class="staff-page active-page">
       <div class="card">
         <h2>Uniform Stock</h2>
-
-        <div class="top-controls">
-          <input id="uniformStockSearch" placeholder="Search uniform stock..." oninput="renderUniformStock()" />
+        <div class="top-row">
+          <input id="uniformSearch" placeholder="Search item, size or box..." oninput="renderUniformStock()" />
           <button onclick="loadUniformStock()">Refresh</button>
         </div>
 
         <div class="form-grid">
-          <input id="newUniformItem" placeholder="Item, e.g. Blue Shirt" />
-          <input id="newUniformSize" placeholder="Size, e.g. 34 inch" />
-          <input id="newUniformBox" placeholder="Box number" />
-          <input id="newUniformQuantity" type="number" placeholder="Quantity" />
-          <input id="newUniformWarning" type="number" placeholder="Low stock warning" value="1" />
+          <input id="uniformItem" placeholder="Uniform item" />
+          <input id="uniformSize" placeholder="Size" />
+          <input id="uniformBox" placeholder="Box / location" />
+          <input id="uniformQty" type="number" placeholder="Quantity" />
+          <input id="uniformMin" type="number" placeholder="Low stock level" value="1" />
         </div>
 
-        <button class="main-button" onclick="addUniformStock()">Add Uniform Stock</button>
+        <button class="primary" onclick="addUniformStock()">Add Uniform Stock</button>
 
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Size</th>
-                <th>Box</th>
-                <th>Quantity</th>
-                <th>Edit Stock</th>
-                <th>Delete</th>
+                <th>Item</th><th>Size</th><th>Box</th><th>Qty</th><th>Low Level</th><th>Edit</th><th>Delete</th>
               </tr>
             </thead>
             <tbody id="uniformStockTable"></tbody>
@@ -93,43 +91,31 @@
 
     <section id="uniformIssuedPage" class="staff-page">
       <div class="card">
-        <h2>Uniform Issued</h2>
-
-        <div class="top-controls">
-          <input id="uniformIssuedSearch" placeholder="Search issued uniform..." oninput="renderUniformIssues()" />
+        <h2>Issued Uniform</h2>
+        <div class="top-row">
+          <input id="uniformIssueSearch" placeholder="Search issued uniform..." oninput="renderUniformIssues()" />
           <button onclick="loadUniformIssues()">Refresh</button>
         </div>
 
         <div class="form-grid">
-          <input id="issueUniformCadet" placeholder="Cadet name" />
-
-          <select id="issueUniformItem" onchange="populateUniformIssueSizes()">
+          <input id="uniformIssueCadet" placeholder="Cadet name" />
+          <select id="uniformIssueItem" onchange="populateUniformSizesForIssue()">
             <option value="">Select item</option>
           </select>
-
-          <select id="issueUniformSize" onchange="showUniformIssueInfo()">
+          <select id="uniformIssueSize" onchange="showUniformIssueStockInfo()">
             <option value="">Select size</option>
           </select>
-
-          <input id="issueUniformQuantity" type="number" value="1" min="1" />
+          <input id="uniformIssueQty" type="number" value="1" min="1" />
         </div>
 
-        <div id="uniformIssueInfo" class="info-box">
-          Select an item and size.
-        </div>
+        <div id="uniformStockInfo" class="info-box">Select an item and size.</div>
+        <button class="primary" onclick="issueUniform()">Issue Uniform</button>
 
-        <button class="main-button" onclick="issueUniform()">Issue Uniform</button>
-
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Cadet</th>
-                <th>Item</th>
-                <th>Size</th>
-                <th>Qty</th>
-                <th>Date</th>
-                <th>Returned</th>
+                <th>Cadet</th><th>Item</th><th>Size</th><th>Box</th><th>Qty</th><th>Issued</th><th>Returned</th>
               </tr>
             </thead>
             <tbody id="uniformIssuedTable"></tbody>
@@ -140,19 +126,13 @@
 
     <section id="uniformRequestsPage" class="staff-page">
       <div class="card">
-        <h2>Uniform Requests</h2>
+        <h2>Cadet Uniform Requests</h2>
         <button onclick="loadUniformRequests()">Refresh Requests</button>
-
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Cadet</th>
-                <th>Item</th>
-                <th>Size</th>
-                <th>Reason</th>
-                <th>Status</th>
-                <th>Date</th>
+                <th>Cadet</th><th>Item</th><th>Size</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th>
               </tr>
             </thead>
             <tbody id="uniformRequestsTable"></tbody>
@@ -164,36 +144,27 @@
     <section id="atStockPage" class="staff-page">
       <div class="card">
         <h2>AT Kit Stock</h2>
-
-        <div class="top-controls">
-          <input id="atStockSearch" placeholder="Search AT kit..." oninput="renderATKit()" />
+        <div class="top-row">
+          <input id="atSearch" placeholder="Search AT kit..." oninput="renderATKit()" />
           <button onclick="loadATKit()">Refresh</button>
         </div>
 
         <div class="form-grid">
-          <input id="newATType" placeholder="Kit Type" />
-          <input id="newATNumber" placeholder="Item Number" />
-          <input id="newATSize" placeholder="Size" />
-          <input id="newATLocation" placeholder="Location" />
-          <input id="newATCondition" placeholder="Condition" value="Good" />
-          <input id="newATNotes" placeholder="Notes" />
+          <input id="atType" placeholder="Kit type e.g. Helmet" />
+          <input id="atNumber" placeholder="Identifying number e.g. H001" />
+          <input id="atSize" placeholder="Size" />
+          <input id="atLocation" placeholder="Location" />
+          <input id="atCondition" placeholder="Condition" value="Good" />
+          <input id="atNotes" placeholder="Notes" />
         </div>
 
-        <button class="main-button" onclick="addATKit()">Add AT Kit</button>
+        <button class="primary" onclick="addATKit()">Add AT Kit</button>
 
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Number</th>
-                <th>Size</th>
-                <th>Condition</th>
-                <th>Status</th>
-                <th>Location</th>
-                <th>Borrow Count</th>
-                <th>Notes</th>
-                <th>Delete</th>
+                <th>Type</th><th>Number</th><th>Size</th><th>Location</th><th>Condition</th><th>Status</th><th>Borrowed</th><th>Notes</th><th>Delete</th>
               </tr>
             </thead>
             <tbody id="atKitTable"></tbody>
@@ -204,40 +175,30 @@
 
     <section id="atIssuePage" class="staff-page">
       <div class="card">
-        <h2>AT Kit Issue</h2>
-
+        <h2>Issue AT Kit</h2>
         <div class="form-grid">
-          <input id="atIssueCadet" placeholder="Cadet Name" />
-
+          <input id="atIssueCadet" placeholder="Cadet name" />
           <select id="atIssueType" onchange="populateATIssueNumbers()">
-            <option value="">Select Kit Type</option>
+            <option value="">Select kit type</option>
           </select>
-
-          <select id="atIssueNumber" onchange="showATIssueInfo()">
-            <option value="">Select Item Number</option>
+          <select id="atIssueKit" onchange="showATIssueInfo()">
+            <option value="">Select item number</option>
           </select>
-
+          <input id="atIssueEvent" placeholder="Event / activity" />
           <input id="atIssueNotes" placeholder="Notes" />
         </div>
 
-        <div id="atIssueInfo" class="info-box">
-          Select a kit item.
-        </div>
+        <div id="atIssueInfo" class="info-box">Select a kit item.</div>
+        <button class="primary" onclick="issueATKit()">Issue AT Kit</button>
 
-        <button class="main-button" onclick="issueATKit()">Issue AT Kit</button>
-
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Cadet</th>
-                <th>Type</th>
-                <th>Item Number</th>
-                <th>Issued</th>
-                <th>Returned</th>
+                <th>Cadet</th><th>Event</th><th>Type</th><th>Number</th><th>Issued</th><th>Returned</th>
               </tr>
             </thead>
-            <tbody id="atIssueTable"></tbody>
+            <tbody id="atIssuesTable"></tbody>
           </table>
         </div>
       </div>
@@ -246,38 +207,32 @@
     <section id="kitListPage" class="staff-page">
       <div class="card">
         <h2>Kit List Creator</h2>
-
         <div class="form-grid">
-          <input id="kitListName" placeholder="Activity / Event Name" />
+          <input id="kitListName" placeholder="Event / activity name" />
           <input id="kitListNotes" placeholder="Notes" />
         </div>
-
-        <button class="main-button" onclick="createKitList()">Create Kit List</button>
+        <button class="primary" onclick="createKitList()">Create Kit List</button>
 
         <hr>
 
+        <h3>Add Items to Kit List</h3>
         <div class="form-grid">
-          <select id="kitListDropdown">
-            <option value="">Select Kit List</option>
+          <select id="kitListSelect" onchange="renderKitListItems()">
+            <option value="">Select kit list</option>
           </select>
-
-          <input id="kitListItem" placeholder="Kit Item Required" />
-
+          <input id="kitListItem" placeholder="Kit type required" />
           <select id="kitListRequired">
             <option value="true">Required</option>
             <option value="false">Optional</option>
           </select>
         </div>
+        <button onclick="addKitListItem()">Add Item</button>
 
-        <button onclick="addItemToKitList()">Add Item To Kit List</button>
-
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Kit List</th>
-                <th>Item</th>
-                <th>Required</th>
+                <th>Kit List</th><th>Item</th><th>Required</th><th>Delete</th>
               </tr>
             </thead>
             <tbody id="kitListItemsTable"></tbody>
@@ -289,20 +244,14 @@
     <section id="eventIssuePage" class="staff-page">
       <div class="card">
         <h2>Event Issue Sheet</h2>
-
-        <select id="eventIssueDropdown" onchange="loadEventIssueSheet()">
-          <option value="">Select Event</option>
+        <select id="eventIssueFilter" onchange="renderEventIssueSheet()">
+          <option value="">All events</option>
         </select>
-
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Event</th>
-                <th>Cadet</th>
-                <th>Kit Type</th>
-                <th>Item Number</th>
-                <th>Date Issued</th>
+                <th>Event</th><th>Cadet</th><th>Type</th><th>Number</th><th>Issued</th><th>Returned</th>
               </tr>
             </thead>
             <tbody id="eventIssueTable"></tbody>
@@ -314,44 +263,34 @@
     <section id="kitCheckerPage" class="staff-page">
       <div class="card">
         <h2>Kit Checker / Event Issue</h2>
-
-        <label>Select Event / Kit List</label>
-        <select id="kitCheckerEvent" onchange="loadKitCheckerEvent()">
-          <option value="">Select Event</option>
+        <select id="checkerEvent" onchange="loadCheckerEvent()">
+          <option value="">Select event / kit list</option>
         </select>
 
         <h3>Cadets Attending</h3>
-        <textarea id="kitCheckerCadets" rows="5" placeholder="One cadet per line"></textarea>
+        <textarea id="checkerCadets" rows="5" placeholder="One cadet per line"></textarea>
+        <button onclick="saveCheckerCadets()">Save Cadets</button>
 
-        <button onclick="saveKitCheckerCadets()">Save Cadets</button>
-
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Cadet</th>
-                <th>Issue Multiple Items</th>
+                <th>Cadet</th><th>Issue Kit</th>
               </tr>
             </thead>
-            <tbody id="kitCheckerCadetTable"></tbody>
+            <tbody id="checkerCadetsTable"></tbody>
           </table>
         </div>
 
-        <h3>Items Selected For Issue</h3>
-
-        <div class="table-wrapper">
+        <h3>Kit Selected for Issue</h3>
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Event</th>
-                <th>Cadet</th>
-                <th>Kit Type</th>
-                <th>Item Number</th>
-                <th>Issue</th>
-                <th>Remove</th>
+                <th>Event</th><th>Cadet</th><th>Type</th><th>Number Given</th><th>Issue</th><th>Remove</th>
               </tr>
             </thead>
-            <tbody id="multiIssueTable"></tbody>
+            <tbody id="pendingEventIssueTable"></tbody>
           </table>
         </div>
       </div>
@@ -360,26 +299,23 @@
     <section id="serviceabilityPage" class="staff-page">
       <div class="card">
         <h2>Serviceability Checks</h2>
-
         <div class="form-grid">
-          <input id="serviceItemNumber" placeholder="Item Number" />
-          <input id="serviceCheckDate" type="date" />
-          <input id="serviceInterval" type="number" placeholder="Days Between Checks" value="365" />
+          <select id="serviceKit">
+            <option value="">Select AT kit item</option>
+          </select>
+          <input id="serviceLastCheck" type="date" />
+          <input id="serviceInterval" type="number" value="365" placeholder="Days between checks" />
         </div>
+        <button class="primary" onclick="addServiceCheck()">Add / Update Check</button>
 
-        <button onclick="addServiceabilityCheck()">Add Serviceability Check</button>
-
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Item Number</th>
-                <th>Last Check</th>
-                <th>Next Due</th>
-                <th>Days Remaining</th>
+                <th>Type</th><th>Number</th><th>Last Check</th><th>Next Due</th><th>Days Remaining</th><th>Delete</th>
               </tr>
             </thead>
-            <tbody id="serviceabilityTable"></tbody>
+            <tbody id="serviceTable"></tbody>
           </table>
         </div>
       </div>
@@ -387,18 +323,13 @@
 
     <section id="atRequestsPage" class="staff-page">
       <div class="card">
-        <h2>AT Kit Requests</h2>
-
+        <h2>Cadet AT Kit Requests</h2>
         <button onclick="loadATRequests()">Refresh Requests</button>
-
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Cadet</th>
-                <th>Event</th>
-                <th>Kit Requested</th>
-                <th>Date</th>
+                <th>Cadet</th><th>Event</th><th>Kit Needed</th><th>Notes</th><th>Status</th><th>Date</th><th>Action</th>
               </tr>
             </thead>
             <tbody id="atRequestsTable"></tbody>
@@ -409,28 +340,22 @@
 
     <section id="tempPasswordPage" class="staff-page">
       <div class="card">
-        <h2>Temporary Passwords</h2>
-
+        <h2>Temporary Staff Passwords</h2>
         <div class="form-grid">
-          <input id="tempPasswordValue" placeholder="Temporary password" />
-          <input id="tempPasswordName" placeholder="Who is it for?" />
-          <input id="tempPasswordExpiry" type="datetime-local" />
+          <input id="tempPassword" placeholder="Temporary password" />
+          <input id="tempName" placeholder="Name / reason" />
+          <input id="tempExpiry" type="datetime-local" />
         </div>
+        <button class="primary" onclick="createTempPassword()">Create Temporary Password</button>
 
-        <button class="main-button" onclick="createTemporaryPassword()">Create Temporary Password</button>
-
-        <div class="table-wrapper">
+        <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Password</th>
-                <th>Name / Reason</th>
-                <th>Expires</th>
-                <th>Active</th>
-                <th>Action</th>
+                <th>Password</th><th>Name / Reason</th><th>Expires</th><th>Active</th><th>Disable</th>
               </tr>
             </thead>
-            <tbody id="temporaryPasswordsTable"></tbody>
+            <tbody id="tempPasswordTable"></tbody>
           </table>
         </div>
       </div>
@@ -439,74 +364,73 @@
   </main>
 </div>
 
-<div id="cadetUniformPortal" class="app hidden">
+<div id="cadetUniformPortal" class="app">
   <header>
-    <h1>Uniform Request Portal</h1>
-    <button class="logout-btn" onclick="backHome()">Back</button>
+    <div>
+      <h1>Uniform Request Portal</h1>
+      <p>Submit a request for uniform</p>
+    </div>
+    <button class="danger" onclick="goHome()">Back</button>
   </header>
 
-  <section class="card">
-    <h2>Request Uniform</h2>
-
-    <div class="form-grid">
-      <input id="cadetUniformName" placeholder="Cadet Name" />
-
-      <select id="cadetUniformItem" onchange="populateCadetUniformSizes()">
-        <option value="">Select Item</option>
-      </select>
-
-      <select id="cadetUniformSize">
-        <option value="">Select Size</option>
-      </select>
-
-      <input id="cadetUniformReason" placeholder="Reason for replacement / new item" />
+  <main>
+    <div class="card">
+      <h2>Request Uniform</h2>
+      <div class="form-grid">
+        <input id="cadetUniformName" placeholder="Your name" />
+        <select id="cadetUniformItem" onchange="populateCadetUniformSizes()">
+          <option value="">Select item</option>
+        </select>
+        <select id="cadetUniformSize">
+          <option value="">Select size</option>
+        </select>
+        <input id="cadetUniformReason" placeholder="Reason for new / replacement item" />
+      </div>
+      <button class="primary" onclick="submitUniformRequest()">Submit Request</button>
     </div>
-
-    <button class="main-button" onclick="submitCadetUniformRequest()">Submit Uniform Request</button>
-  </section>
+  </main>
 </div>
 
-<div id="cadetATPortal" class="app hidden">
+<div id="cadetATPortal" class="app">
   <header>
-    <h1>AT Kit Request Portal</h1>
-    <button class="logout-btn" onclick="backHome()">Back</button>
+    <div>
+      <h1>AT Kit Request Portal</h1>
+      <p>Submit a request for adventure training kit</p>
+    </div>
+    <button class="danger" onclick="goHome()">Back</button>
   </header>
 
-  <section class="card">
-    <h2>Request AT Kit</h2>
+  <main>
+    <div class="card">
+      <h2>Request AT Kit</h2>
+      <div class="form-grid">
+        <input id="cadetATName" placeholder="Your name" />
+        <select id="cadetATEvent" onchange="loadCadetATChecklist()">
+          <option value="">Select event / activity</option>
+        </select>
+        <input id="cadetATNotes" placeholder="Notes" />
+      </div>
 
-    <div class="form-grid">
-      <input id="cadetATName" placeholder="Cadet Name" />
+      <h3>Tick kit needed</h3>
+      <div id="cadetATChecklist" class="checklist"></div>
 
-      <select id="cadetATEvent" onchange="loadCadetATKitList()">
-        <option value="">Select Event</option>
-      </select>
+      <button class="primary" onclick="submitATRequest()">Submit AT Request</button>
     </div>
-
-    <h3>Tick Everything You Need</h3>
-
-    <div id="cadetATKitChecklist"></div>
-
-    <button class="main-button" onclick="submitCadetATRequest()">Submit AT Request</button>
-  </section>
+  </main>
 </div>
 
-<div id="kitIssueModal" class="modal" style="display:none;">
-  <div class="modal-content">
-    <h2 id="modalCadetName">Issue Kit</h2>
-
-    <p>Select everything this cadet needs to borrow.</p>
-
-    <div id="modalKitChecklist"></div>
-
-    <br>
-
-    <button onclick="confirmMultiIssueSelection()">OK</button>
-    <button onclick="closeKitIssueModal()">Cancel</button>
+<div id="kitModal" class="modal">
+  <div class="modal-card">
+    <h2 id="kitModalTitle">Issue Kit</h2>
+    <p>Select all items this cadet needs to borrow.</p>
+    <div id="kitModalChecklist" class="checklist"></div>
+    <div class="modal-actions">
+      <button class="primary" onclick="confirmModalKitSelection()">OK</button>
+      <button onclick="closeKitModal()">Cancel</button>
+    </div>
   </div>
 </div>
 
-<script src="script.js?v=2"></script>
-
+<script src="script.js?v=200"></script>
 </body>
 </html>
