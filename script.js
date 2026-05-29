@@ -1,57 +1,90 @@
 const SUPABASE_URL = "https://oskorapwgvoecvtdtkwi.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Zm5qgcsjzsuzicBwa6Z0sA_qgn-Gm5R";
-
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 const STAFF_PASSWORD = "1384-Staff";
 
-let loggedInMode = null;
+let uniformStock = [];
+let uniformIssues = [];
+let uniformRequests = [];
+let atKit = [];
+let atIssues = [];
+let atRequests = [];
+let kitLists = [];
+let kitListItems = [];
+let serviceChecks = [];
+let borrowCounts = {};
+let eventCadets = JSON.parse(localStorage.getItem("eventCadets") || "{}");
+let eventIssueRows = JSON.parse(localStorage.getItem("eventIssueRows") || "[]");
+let checkerData = JSON.parse(localStorage.getItem("checkerData") || "{}");
+let selectedEventIssueListId = "";
+let selectedCheckerListId = "";
+let modalCadet = "";
 
-let allUniformStock = [];
-let allUniformIssueHistory = [];
-let allUniformRequests = [];
+function escapeHtml(value){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
-let allATKit = [];
-let allATIssueHistory = [];
-let allATRequests = [];
-let allATKitLists = [];
-let allATKitListItems = [];
-let allATBorrowCounts = {};
+function formatDate(value){
+  if(!value) return "";
+  try{
+    return new Date(value).toLocaleString("en-GB");
+  }catch{
+    return value;
+  }
+}
 
-let allTempPasswords = [];
+function todayISO(){
+  return new Date().toISOString();
+}
 
-let currentKitCheckEvent = null;
+function localDate(){
+  return new Date().toISOString().slice(0,10);
+}
 
-function hideAllScreens(){
-  document.getElementById("homeScreen").style.display = "none";
-  document.getElementById("staffLoginScreen").style.display = "none";
-  document.getElementById("mainContent").style.display = "none";
-  document.getElementById("uniformRequestPage").style.display = "none";
-  document.getElementById("atRequestPage").style.display = "none";
+function saveLocal(){
+  localStorage.setItem("eventCadets", JSON.stringify(eventCadets));
+  localStorage.setItem("eventIssueRows", JSON.stringify(eventIssueRows));
+  localStorage.setItem("checkerData", JSON.stringify(checkerData));
+}
+
+function hideAll(){
+  [
+    "homeScreen",
+    "staffLoginScreen",
+    "staffApp",
+    "cadetUniformPortal",
+    "cadetATPortal",
+    "kitSelectModal"
+  ].forEach(id => document.getElementById(id)?.classList.add("hidden"));
 }
 
 function backHome(){
-  loggedInMode = null;
-  hideAllScreens();
-  document.getElementById("homeScreen").style.display = "flex";
+  hideAll();
+  document.getElementById("homeScreen").classList.remove("hidden");
 }
 
 function openStaffLogin(){
-  hideAllScreens();
-  document.getElementById("staffLoginScreen").style.display = "flex";
+  hideAll();
+  document.getElementById("staffLoginScreen").classList.remove("hidden");
 }
 
-async function openUniformRequest(){
-  hideAllScreens();
-  document.getElementById("uniformRequestPage").style.display = "block";
+async function openCadetUniformPortal(){
+  hideAll();
+  document.getElementById("cadetUniformPortal").classList.remove("hidden");
   await loadUniformStock();
+  populateCadetUniformItems();
 }
 
-async function openATRequest(){
-  hideAllScreens();
-  document.getElementById("atRequestPage").style.display = "block";
-  await loadATKit();
-  await loadATKitLists();
+async function openCadetATPortal(){
+  hideAll();
+  document.getElementById("cadetATPortal").classList.remove("hidden");
+  await loadKitLists();
+  populateCadetATEvents();
 }
 
 function logout(){
@@ -59,1792 +92,1649 @@ function logout(){
 }
 
 async function staffLogin(){
-  const enteredPassword = document.getElementById("staffPasswordInput").value.trim();
+  const entered = document.getElementById("staffPasswordInput").value.trim();
 
-  if(enteredPassword === STAFF_PASSWORD){
-    loggedInMode = "staff";
-    await openFullSite("Staff Account");
+  if(entered !== STAFF_PASSWORD){
+    alert("Incorrect password");
     return;
   }
 
-  try{
-    const { data, error } = await supabaseClient
-      .from("temporary_passwords")
-      .select("*")
-      .eq("password", enteredPassword)
-      .eq("active", true);
+  hideAll();
+  document.getElementById("staffApp").classList.remove("hidden");
 
-    if(error){
-      console.log(error);
-    }
-
-    if(data && data.length > 0){
-      const validPassword = data.find(p => new Date(p.expires_at) > new Date());
-
-      if(validPassword){
-        loggedInMode = "temporary";
-        await openFullSite("Temporary Full Access");
-        return;
-      }
-    }
-  }catch(err){
-    console.log(err);
-  }
-
-  alert("Incorrect password");
+  await loadAll();
+  showStaffPage("uniformStockPage");
 }
 
-async function openFullSite(label){
-  hideAllScreens();
+function showStaffPage(id){
+  document.querySelectorAll(".staff-page").forEach(p => p.classList.remove("active-page"));
+  document.getElementById(id)?.classList.add("active-page");
 
-  document.getElementById("mainContent").style.display = "block";
-  document.getElementById("loggedInAs").innerText = `Logged in as: ${label}`;
-
-  const pageSelect = document.getElementById("pageSelect");
-
-  if(loggedInMode === "staff"){
-    pageSelect.innerHTML = `
-      <option value="uniformStockPage">Uniform - Current Stock</option>
-      <option value="uniformIssuePage">Uniform - Issue Kit</option>
-      <option value="uniformHistoryPage">Uniform - Issue History</option>
-      <option value="uniformRequestsPage">Uniform - Requests</option>
-      <option value="atStockPage">AT Kit - Current Kit</option>
-      <option value="atIssuePage">AT Kit - Issue Kit</option>
-      <option value="atReturnPage">AT Kit - Return Kit</option>
-      <option value="atHistoryPage">AT Kit - Issue History</option>
-      <option value="atRequestsPage">AT Kit - Requests</option>
-      <option value="atKitListsPage">AT Kit - Kit Lists</option>
-      <option value="kitCheckPage">AT Kit - Event Kit Check</option>
-      <option value="tempPasswordPage">Temporary Passwords</option>
-    `;
-  } else {
-    pageSelect.innerHTML = `
-      <option value="uniformStockPage">Uniform - Current Stock</option>
-      <option value="uniformIssuePage">Uniform - Issue Kit</option>
-      <option value="uniformHistoryPage">Uniform - Issue History</option>
-      <option value="uniformRequestsPage">Uniform - Requests</option>
-      <option value="atStockPage">AT Kit - Current Kit</option>
-      <option value="atIssuePage">AT Kit - Issue Kit</option>
-      <option value="atReturnPage">AT Kit - Return Kit</option>
-      <option value="atHistoryPage">AT Kit - Issue History</option>
-      <option value="kitCheckPage">AT Kit - Event Kit Check</option>
-      <option value="atRequestsPage">AT Kit - Requests</option>
-    `;
+  if(id === "uniformStockPage") renderUniformStock();
+  if(id === "uniformIssuedPage"){
+    populateUniformIssueItems();
+    renderUniformIssues();
   }
+  if(id === "uniformRequestsPage") renderUniformRequests();
+  if(id === "atStockPage") renderATKit();
+  if(id === "atIssuePage"){
+    populateATIssueTypes();
+    renderATIssues();
+  }
+  if(id === "kitListPage"){
+    populateKitListSelects();
+    renderKitListItems();
+  }
+  if(id === "eventIssuePage"){
+    populateEventIssueLists();
+    loadEventIssueSheet();
+  }
+  if(id === "kitCheckerPage"){
+    populateCheckerLists();
+    loadKitChecker();
+  }
+  if(id === "serviceabilityPage"){
+    populateServiceKitItems();
+    renderServiceability();
+  }
+  if(id === "atRequestsPage") renderATRequests();
+}
 
-  pageSelect.value = "uniformStockPage";
-
+async function loadAll(){
   await loadUniformStock();
-  await loadUniformIssueHistory();
+  await loadUniformIssues();
   await loadUniformRequests();
+
   await loadATKit();
-  await loadATIssueHistory();
+  await loadATIssues();
   await loadATRequests();
-  await loadATKitLists();
+  await loadKitLists();
+  await loadServiceChecks();
 
-  if(loggedInMode === "staff"){
-    await loadTemporaryPasswords();
-  }
-
-  changePage();
-}
-
-function changePage(){
-  document.querySelectorAll(".page").forEach(page => {
-    page.classList.remove("active-page");
-  });
-
-  const selected = document.getElementById("pageSelect").value;
-
-  if(loggedInMode !== "staff" && selected === "tempPasswordPage"){
-    alert("Only the staff account can access temporary passwords.");
-    document.getElementById("pageSelect").value = "uniformStockPage";
-    document.getElementById("uniformStockPage").classList.add("active-page");
-    return;
-  }
-
-  document.getElementById(selected).classList.add("active-page");
-
-  if(selected === "kitCheckPage"){
-    loadKitCheckEvents();
-  }
+  populateUniformIssueItems();
+  populateATIssueTypes();
+  populateKitListSelects();
+  populateEventIssueLists();
+  populateCheckerLists();
+  populateServiceKitItems();
+  populateCadetUniformItems();
+  populateCadetATEvents();
 }
 
 /* UNIFORM STOCK */
 
 async function loadUniformStock(){
-  const { data, error } = await supabaseClient
+  const {data,error} = await supabaseClient
     .from("uniform_stock")
     .select("*")
-    .order("item", { ascending:true });
+    .order("item",{ascending:true})
+    .order("size",{ascending:true});
 
   if(error){
-    console.log(error);
+    console.error(error);
     alert("Error loading uniform stock");
     return;
   }
 
-  allUniformStock = data || [];
-  displayUniformStock(allUniformStock);
-  populateUniformDropdowns();
+  uniformStock = data || [];
+  renderUniformStock();
+  populateUniformIssueItems();
+  populateCadetUniformItems();
 }
 
-function displayUniformStock(stock){
+function renderUniformStock(){
   const table = document.getElementById("uniformStockTable");
   if(!table) return;
 
+  const q = (document.getElementById("uniformStockSearch")?.value || "").toLowerCase();
+
+  const rows = uniformStock.filter(x =>
+    [x.item,x.size,x.box_number].some(v =>
+      String(v || "").toLowerCase().includes(q)
+    )
+  );
+
   table.innerHTML = "";
 
-  if(!stock || stock.length === 0){
-    table.innerHTML = `<tr><td colspan="4" class="no-data">No uniform stock found</td></tr>`;
+  if(!rows.length){
+    table.innerHTML = `<tr><td colspan="6" class="no-data">No uniform stock found</td></tr>`;
     return;
   }
 
-  stock.forEach(item => {
-    const low = Number(item.quantity) <= Number(item.warning_level || 1) ? "low-stock" : "";
+  rows.forEach(x => {
+    const low = Number(x.quantity || 0) <= Number(x.warning_level || 1)
+      ? "low-stock"
+      : "";
 
     table.innerHTML += `
       <tr>
-        <td>${escapeHtml(item.item || "")}</td>
-        <td>${escapeHtml(item.size || "")}</td>
-        <td>${escapeHtml(item.box_number || "")}</td>
-        <td class="${low}">${item.quantity || 0}</td>
+        <td>${escapeHtml(x.item)}</td>
+        <td>${escapeHtml(x.size)}</td>
+        <td>${escapeHtml(x.box_number)}</td>
+        <td class="${low}">${escapeHtml(x.quantity || 0)}</td>
+        <td>
+          <button class="small-btn edit-btn" onclick="quickUniformStock('${x.id}',-1)">-1</button>
+          <button class="small-btn edit-btn" onclick="quickUniformStock('${x.id}',1)">+1</button>
+          <button class="small-btn edit-btn" onclick="setUniformStock('${x.id}')">Set</button>
+        </td>
+        <td>
+          <button class="small-btn delete-btn" onclick="deleteUniformStock('${x.id}')">Delete</button>
+        </td>
       </tr>
     `;
   });
 }
 
-function searchUniformStock(){
-  const input = document.getElementById("uniformSearchInput");
-  if(!input) return;
+async function addUniformStock(){
+  const item = document.getElementById("newUniformItem").value.trim();
+  const size = document.getElementById("newUniformSize").value.trim();
+  const box = document.getElementById("newUniformBox").value.trim();
+  const qty = Number(document.getElementById("newUniformQuantity").value || 0);
+  const warning = Number(document.getElementById("newUniformWarning").value || 1);
 
-  const search = input.value.toLowerCase();
+  if(!item || !size){
+    alert("Enter item and size");
+    return;
+  }
 
-  const filtered = allUniformStock.filter(item =>
-    item.item?.toLowerCase().includes(search) ||
-    item.size?.toLowerCase().includes(search) ||
-    item.box_number?.toString().toLowerCase().includes(search)
-  );
+  const {error} = await supabaseClient
+    .from("uniform_stock")
+    .insert([{
+      item,
+      size,
+      box_number:box,
+      quantity:qty,
+      warning_level:warning
+    }]);
 
-  displayUniformStock(filtered);
+  if(error){
+    console.error(error);
+    alert("Could not add uniform stock");
+    return;
+  }
+
+  ["newUniformItem","newUniformSize","newUniformBox","newUniformQuantity"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+
+  document.getElementById("newUniformWarning").value = "1";
+
+  await loadUniformStock();
 }
 
-function populateUniformDropdowns(){
-  const uniqueItems = [...new Set(allUniformStock.map(x => x.item))]
+async function quickUniformStock(id, change){
+  const row = uniformStock.find(x => String(x.id) === String(id));
+  if(!row) return;
+
+  const qty = Math.max(0, Number(row.quantity || 0) + change);
+
+  const {error} = await supabaseClient
+    .from("uniform_stock")
+    .update({
+      quantity:qty,
+      updated_at:todayISO()
+    })
+    .eq("id",id);
+
+  if(error){
+    console.error(error);
+    alert("Could not update stock");
+    return;
+  }
+
+  await loadUniformStock();
+}
+async function setUniformStock(id){
+  const row = uniformStock.find(x => String(x.id) === String(id));
+  if(!row) return;
+
+  const value = prompt("Enter new stock quantity:", row.quantity || 0);
+  if(value === null) return;
+
+  const qty = Number(value);
+
+  if(isNaN(qty) || qty < 0){
+    alert("Enter a valid number");
+    return;
+  }
+
+  const {error} = await supabaseClient
+    .from("uniform_stock")
+    .update({
+      quantity:qty,
+      updated_at:todayISO()
+    })
+    .eq("id",id);
+
+  if(error){
+    console.error(error);
+    alert("Could not set stock");
+    return;
+  }
+
+  await loadUniformStock();
+}
+
+async function deleteUniformStock(id){
+  if(!confirm("Delete this uniform item?")) return;
+
+  const {error} = await supabaseClient
+    .from("uniform_stock")
+    .delete()
+    .eq("id",id);
+
+  if(error){
+    console.error(error);
+    alert("Could not delete uniform stock");
+    return;
+  }
+
+  await loadUniformStock();
+}
+
+function populateUniformIssueItems(){
+  const select = document.getElementById("issueUniformItem");
+  if(!select) return;
+
+  const current = select.value;
+
+  select.innerHTML = `<option value="">Select item</option>`;
+
+  [...new Set(uniformStock.map(x => x.item))]
     .filter(Boolean)
-    .sort();
-
-  ["uniformIssueItem", "uniformRequestItem"].forEach(id => {
-    const dropdown = document.getElementById(id);
-    if(!dropdown) return;
-
-    dropdown.innerHTML = `<option value="">Select Item</option>`;
-
-    uniqueItems.forEach(item => {
-      dropdown.innerHTML += `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`;
+    .sort()
+    .forEach(item => {
+      select.innerHTML += `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`;
     });
-  });
+
+  select.value = current;
 }
 
-function updateUniformIssueSizeDropdown(){
-  const itemDropdown = document.getElementById("uniformIssueItem");
-  const sizeDropdown = document.getElementById("uniformIssueSize");
+function populateUniformIssueSizes(){
+  const item = document.getElementById("issueUniformItem").value;
+  const select = document.getElementById("issueUniformSize");
 
-  if(!itemDropdown || !sizeDropdown) return;
+  if(!select) return;
 
-  const item = itemDropdown.value;
+  select.innerHTML = `<option value="">Select size</option>`;
 
-  sizeDropdown.innerHTML = `<option value="">Select Size</option>`;
-
-  const sizes = [...new Set(allUniformStock.filter(x => x.item === item).map(x => x.size))]
+  [...new Set(
+    uniformStock
+      .filter(x => x.item === item)
+      .map(x => x.size)
+  )]
     .filter(Boolean)
-    .sort();
+    .sort()
+    .forEach(size => {
+      select.innerHTML += `<option value="${escapeHtml(size)}">${escapeHtml(size)}</option>`;
+    });
 
-  sizes.forEach(size => {
-    sizeDropdown.innerHTML += `<option value="${escapeHtml(size)}">${escapeHtml(size)}</option>`;
-  });
-
-  updateUniformBoxInfo();
+  showUniformIssueInfo();
 }
 
-function updateUniformRequestSizeDropdown(){
-  const itemDropdown = document.getElementById("uniformRequestItem");
-  const sizeDropdown = document.getElementById("uniformRequestSize");
+function showUniformIssueInfo(){
+  const item = document.getElementById("issueUniformItem").value;
+  const size = document.getElementById("issueUniformSize").value;
+  const box = document.getElementById("uniformIssueInfo");
 
-  if(!itemDropdown || !sizeDropdown) return;
-
-  const item = itemDropdown.value;
-
-  sizeDropdown.innerHTML = `<option value="">Select Size</option>`;
-
-  const sizes = [...new Set(allUniformStock.filter(x => x.item === item).map(x => x.size))]
-    .filter(Boolean)
-    .sort();
-
-  sizes.forEach(size => {
-    sizeDropdown.innerHTML += `<option value="${escapeHtml(size)}">${escapeHtml(size)}</option>`;
-  });
-}
-
-function updateUniformBoxInfo(){
-  const itemDropdown = document.getElementById("uniformIssueItem");
-  const sizeDropdown = document.getElementById("uniformIssueSize");
-  const box = document.getElementById("uniformSelectedStockInfo");
-
-  if(!itemDropdown || !sizeDropdown || !box) return;
-
-  const item = itemDropdown.value;
-  const size = sizeDropdown.value;
+  if(!box) return;
 
   if(!item || !size){
     box.innerHTML = "Select an item and size.";
     return;
   }
 
-  const matches = allUniformStock.filter(x => x.item === item && x.size === size);
-  const total = matches.reduce((sum, x) => sum + Number(x.quantity || 0), 0);
+  const matches = uniformStock.filter(x => x.item === item && x.size === size);
+  const total = matches.reduce((sum,x) => sum + Number(x.quantity || 0),0);
 
   box.innerHTML = `
-    <strong>Available:</strong> ${total}<br>
+    <strong>Total available:</strong> ${total}<br>
     <strong>Boxes:</strong><br>
-    ${matches.map(x => `${escapeHtml(x.box_number || "No box")} - Qty ${x.quantity}`).join("<br>")}
+    ${matches.map(x => `${escapeHtml(x.box_number || "No box")} - Qty ${escapeHtml(x.quantity || 0)}`).join("<br>")}
   `;
 }
 
-/* UNIFORM ISSUE / HISTORY / REQUESTS */
-
 async function issueUniform(){
-  if(!loggedInMode){
-    alert("You do not have permission.");
+  const cadet = document.getElementById("issueUniformCadet").value.trim();
+  const item = document.getElementById("issueUniformItem").value;
+  const size = document.getElementById("issueUniformSize").value;
+  const qty = Number(document.getElementById("issueUniformQuantity").value || 1);
+
+  if(!cadet || !item || !size || qty < 1){
+    alert("Complete all uniform issue fields");
     return;
   }
 
-  const cadetName = document.getElementById("uniformIssueCadetName").value.trim();
-  const item = document.getElementById("uniformIssueItem").value;
-  const size = document.getElementById("uniformIssueSize").value;
-  const qty = parseInt(document.getElementById("uniformIssueQty").value);
-
-  if(!cadetName || !item || !size || !qty || qty < 1){
-    alert("Complete all fields.");
-    return;
-  }
-
-  const matchingStock = allUniformStock
-    .filter(x => x.item === item && x.size === size && Number(x.quantity) > 0)
-    .sort((a,b) => Number(b.quantity) - Number(a.quantity));
+  const matching = uniformStock
+    .filter(x => x.item === item && x.size === size && Number(x.quantity || 0) > 0)
+    .sort((a,b) => Number(b.quantity || 0) - Number(a.quantity || 0));
 
   let remaining = qty;
-  const issueRecords = [];
+  const records = [];
 
-  for(const stockLine of matchingStock){
+  for(const stock of matching){
     if(remaining <= 0) break;
 
-    const available = Number(stockLine.quantity);
+    const available = Number(stock.quantity || 0);
     const taken = Math.min(available, remaining);
-    const newQty = available - taken;
 
-    const { error:updateError } = await supabaseClient
+    const {error:updateError} = await supabaseClient
       .from("uniform_stock")
       .update({
-        quantity:newQty,
-        updated_at:new Date().toISOString()
+        quantity: available - taken,
+        updated_at: todayISO()
       })
-      .eq("id", stockLine.id);
+      .eq("id", stock.id);
 
     if(updateError){
-      console.log(updateError);
-      alert("Error updating uniform stock.");
+      console.error(updateError);
+      alert("Could not update uniform stock");
       return;
     }
 
-    issueRecords.push({
-      cadet_name:cadetName,
-      item:stockLine.item,
-      size:stockLine.size,
-      box_number:stockLine.box_number,
-      quantity:taken,
-      issued_by: loggedInMode === "staff" ? "Staff Account" : "Temporary Access",
-      returned:false
+    records.push({
+      cadet_name: cadet,
+      item: stock.item,
+      size: stock.size,
+      box_number: stock.box_number,
+      quantity: taken,
+      issued_by: "Staff",
+      returned: false
     });
 
     remaining -= taken;
   }
 
   if(remaining > 0){
-    alert("Not enough uniform stock available.");
+    alert("Not enough stock available. Some stock may already have been updated, please check.");
     await loadUniformStock();
     return;
   }
 
-  const { error:insertError } = await supabaseClient
+  const {error:insertError} = await supabaseClient
     .from("uniform_issues")
-    .insert(issueRecords);
+    .insert(records);
 
   if(insertError){
-    console.log(insertError);
-    alert("Stock updated but uniform issue history failed.");
+    console.error(insertError);
+    alert("Uniform stock changed, but issue history did not save.");
     return;
   }
 
-  alert("Uniform issued successfully.");
+  alert("Uniform issued");
 
-  document.getElementById("uniformIssueCadetName").value = "";
-  document.getElementById("uniformIssueItem").value = "";
-  document.getElementById("uniformIssueSize").innerHTML = `<option value="">Select Size</option>`;
-  document.getElementById("uniformIssueQty").value = 1;
+  document.getElementById("issueUniformCadet").value = "";
+  document.getElementById("issueUniformItem").value = "";
+  document.getElementById("issueUniformSize").innerHTML = `<option value="">Select size</option>`;
+  document.getElementById("issueUniformQuantity").value = 1;
 
   await loadUniformStock();
-  await loadUniformIssueHistory();
+  await loadUniformIssues();
 }
 
-async function loadUniformIssueHistory(){
-  const { data, error } = await supabaseClient
+async function loadUniformIssues(){
+  const {data,error} = await supabaseClient
     .from("uniform_issues")
     .select("*")
-    .order("issue_date", { ascending:false });
+    .order("issue_date",{ascending:false});
 
   if(error){
-    console.log(error);
+    console.error(error);
     return;
   }
 
-  allUniformIssueHistory = data || [];
-  displayUniformIssueHistory(allUniformIssueHistory);
+  uniformIssues = data || [];
+  renderUniformIssues();
 }
 
-function displayUniformIssueHistory(history){
-  const table = document.getElementById("uniformIssueHistoryTable");
+function renderUniformIssues(){
+  const table = document.getElementById("uniformIssuedTable");
   if(!table) return;
+
+  const q = (document.getElementById("uniformIssuedSearch")?.value || "").toLowerCase();
+
+  const rows = uniformIssues.filter(x =>
+    [x.cadet_name,x.item,x.size,x.box_number].some(v =>
+      String(v || "").toLowerCase().includes(q)
+    )
+  );
 
   table.innerHTML = "";
 
-  if(!history || history.length === 0){
-    table.innerHTML = `<tr><td colspan="7" class="no-data">No uniform issue history found</td></tr>`;
+  if(!rows.length){
+    table.innerHTML = `<tr><td colspan="6" class="no-data">No uniform issue records found</td></tr>`;
     return;
   }
 
-  history.forEach(r => {
+  rows.forEach(x => {
     table.innerHTML += `
       <tr>
-        <td>${escapeHtml(r.cadet_name || "")}</td>
-        <td>${escapeHtml(r.item || "")}</td>
-        <td>${escapeHtml(r.size || "")}</td>
-        <td>${escapeHtml(r.box_number || "")}</td>
-        <td>${r.quantity || ""}</td>
-        <td>${formatDate(r.issue_date)}</td>
-        <td>${r.returned ? "Yes" : "No"}</td>
+        <td>${escapeHtml(x.cadet_name)}</td>
+        <td>${escapeHtml(x.item)}</td>
+        <td>${escapeHtml(x.size)}</td>
+        <td>${escapeHtml(x.quantity)}</td>
+        <td>${formatDate(x.issue_date || x.created_at)}</td>
+        <td>${x.returned ? "Yes" : "No"}</td>
       </tr>
     `;
   });
 }
 
-function searchUniformIssueHistory(){
-  const input = document.getElementById("uniformHistorySearchInput");
-  if(!input) return;
+/* UNIFORM REQUESTS */
 
-  const search = input.value.toLowerCase();
+async function loadUniformRequests(){
+  const {data,error} = await supabaseClient
+    .from("uniform_requests")
+    .select("*")
+    .order("requested_at",{ascending:false});
 
-  const filtered = allUniformIssueHistory.filter(r =>
-    r.cadet_name?.toLowerCase().includes(search) ||
-    r.item?.toLowerCase().includes(search) ||
-    r.size?.toLowerCase().includes(search) ||
-    r.box_number?.toString().toLowerCase().includes(search)
-  );
-
-  displayUniformIssueHistory(filtered);
-}
-
-async function submitUniformRequest(){
-  const cadetName = document.getElementById("uniformRequestCadetName").value.trim();
-  const item = document.getElementById("uniformRequestItem").value;
-  const size = document.getElementById("uniformRequestSize").value;
-  const reason = document.getElementById("uniformRequestReason").value.trim();
-
-  if(!cadetName || !item || !size){
-    alert("Please complete your name, item and size.");
+  if(error){
+    console.error(error);
     return;
   }
 
-  const { error } = await supabaseClient
+  uniformRequests = data || [];
+  renderUniformRequests();
+}
+
+function renderUniformRequests(){
+  const table = document.getElementById("uniformRequestsTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(!uniformRequests.length){
+    table.innerHTML = `<tr><td colspan="6" class="no-data">No uniform requests found</td></tr>`;
+    return;
+  }
+
+  uniformRequests.forEach(x => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(x.cadet_name)}</td>
+        <td>${escapeHtml(x.item)}</td>
+        <td>${escapeHtml(x.size)}</td>
+        <td>${escapeHtml(x.reason)}</td>
+        <td>${escapeHtml(x.status || "Pending")}</td>
+        <td>${formatDate(x.requested_at || x.created_at)}</td>
+      </tr>
+    `;
+  });
+}
+
+function populateCadetUniformItems(){
+  const select = document.getElementById("cadetUniformItem");
+  if(!select) return;
+
+  select.innerHTML = `<option value="">Select Item</option>`;
+
+  [...new Set(uniformStock.map(x => x.item))]
+    .filter(Boolean)
+    .sort()
+    .forEach(item => {
+      select.innerHTML += `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`;
+    });
+}
+function populateCadetUniformSizes(){
+  const item = document.getElementById("cadetUniformItem").value;
+  const select = document.getElementById("cadetUniformSize");
+
+  if(!select) return;
+
+  select.innerHTML = `<option value="">Select Size</option>`;
+
+  [...new Set(
+    uniformStock
+      .filter(x => x.item === item)
+      .map(x => x.size)
+  )]
+    .filter(Boolean)
+    .sort()
+    .forEach(size => {
+      select.innerHTML += `<option value="${escapeHtml(size)}">${escapeHtml(size)}</option>`;
+    });
+}
+
+async function submitCadetUniformRequest(){
+  const cadet = document.getElementById("cadetUniformName").value.trim();
+  const item = document.getElementById("cadetUniformItem").value;
+  const size = document.getElementById("cadetUniformSize").value;
+  const reason = document.getElementById("cadetUniformReason").value.trim();
+
+  if(!cadet || !item || !size || !reason){
+    alert("Complete all fields");
+    return;
+  }
+
+  const {error} = await supabaseClient
     .from("uniform_requests")
     .insert([{
-      cadet_name:cadetName,
+      cadet_name: cadet,
       item,
       size,
       reason,
-      status:"Pending"
+      status: "Pending"
     }]);
 
   if(error){
-    console.log(error);
-    alert("Uniform request failed.");
+    console.error(error);
+    alert("Could not submit request");
     return;
   }
 
-  alert("Uniform request submitted successfully.");
+  alert("Uniform request submitted");
 
-  document.getElementById("uniformRequestCadetName").value = "";
-  document.getElementById("uniformRequestItem").value = "";
-  document.getElementById("uniformRequestSize").innerHTML = `<option value="">Select Size</option>`;
-  document.getElementById("uniformRequestReason").value = "";
+  document.getElementById("cadetUniformName").value = "";
+  document.getElementById("cadetUniformReason").value = "";
+  document.getElementById("cadetUniformItem").value = "";
+  document.getElementById("cadetUniformSize").innerHTML = `<option value="">Select Size</option>`;
 }
 
-async function loadUniformRequests(){
-  const { data, error } = await supabaseClient
-    .from("uniform_requests")
-    .select("*")
-    .order("requested_at", { ascending:false });
-
-  if(error){
-    console.log(error);
-    return;
-  }
-
-  allUniformRequests = data || [];
-  displayUniformRequests();
-}
-
-function displayUniformRequests(){
-  const table = document.getElementById("uniformRequestsTable");
-  if(!table) return;
-
-  table.innerHTML = "";
-
-  if(!allUniformRequests || allUniformRequests.length === 0){
-    table.innerHTML = `<tr><td colspan="7" class="no-data">No uniform requests found</td></tr>`;
-    return;
-  }
-
-  allUniformRequests.forEach(r => {
-    table.innerHTML += `
-      <tr>
-        <td>${escapeHtml(r.cadet_name || "")}</td>
-        <td>${escapeHtml(r.item || "")}</td>
-        <td>${escapeHtml(r.size || "")}</td>
-        <td>${escapeHtml(r.reason || "")}</td>
-        <td>${escapeHtml(r.status || "")}</td>
-        <td>${formatDate(r.requested_at)}</td>
-        <td>
-          <button class="small-btn approve-btn" onclick="updateUniformRequestStatus(${r.id}, 'Approved')">Approve</button>
-          <button class="small-btn reject-btn" onclick="updateUniformRequestStatus(${r.id}, 'Rejected')">Reject</button>
-        </td>
-      </tr>
-    `;
-  });
-}
-
-async function updateUniformRequestStatus(id, status){
-  const { error } = await supabaseClient
-    .from("uniform_requests")
-    .update({
-      status,
-      reviewed_by: loggedInMode === "staff" ? "Staff Account" : "Temporary Access",
-      reviewed_at:new Date().toISOString()
-    })
-    .eq("id", id);
-
-  if(error){
-    console.log(error);
-    alert("Could not update uniform request.");
-    return;
-  }
-
-  await loadUniformRequests();
-}
-
-/* AT KIT STOCK */
+/* AT KIT */
 
 async function loadATKit(){
-  const { data, error } = await supabaseClient
+  const {data,error} = await supabaseClient
     .from("at_kit")
     .select("*")
-    .order("kit_type", { ascending:true });
+    .order("kit_type",{ascending:true})
+    .order("kit_number",{ascending:true});
 
   if(error){
-    console.log(error);
+    console.error(error);
+    alert("Error loading AT kit");
     return;
   }
 
-  allATKit = data || [];
-  await loadATBorrowCounts();
-  displayATKit(allATKit);
-  populateATDropdowns();
+  atKit = data || [];
+
+  await buildBorrowCounts();
+
+  renderATKit();
+  populateATIssueTypes();
+  populateServiceKitItems();
 }
 
-async function loadATBorrowCounts(){
-  const { data, error } = await supabaseClient
+async function buildBorrowCounts(){
+  const {data,error} = await supabaseClient
     .from("at_kit_issues")
-    .select("kit_id, kit_type, kit_number");
+    .select("kit_id,kit_type,kit_number");
+
+  borrowCounts = {};
 
   if(error){
-    console.log(error);
-    allATBorrowCounts = {};
+    console.error(error);
     return;
   }
 
-  allATBorrowCounts = {};
+  (data || []).forEach(x => {
+    const key = x.kit_id
+      ? `id-${x.kit_id}`
+      : `${x.kit_type || ""}-${x.kit_number || ""}`;
 
-  (data || []).forEach(record => {
-    const key = record.kit_id
-      ? `id-${record.kit_id}`
-      : `${record.kit_type || ""}-${record.kit_number || ""}`;
-
-    allATBorrowCounts[key] = (allATBorrowCounts[key] || 0) + 1;
+    borrowCounts[key] = (borrowCounts[key] || 0) + 1;
   });
 }
 
-function getATBorrowCount(item){
-  const keyById = `id-${item.id}`;
-  const keyByName = `${item.kit_type || ""}-${item.kit_number || ""}`;
-
-  return allATBorrowCounts[keyById] || allATBorrowCounts[keyByName] || 0;
+function getBorrowCount(item){
+  return borrowCounts[`id-${item.id}`] ||
+    borrowCounts[`${item.kit_type || ""}-${item.kit_number || ""}`] ||
+    0;
 }
 
-function displayATKit(kit){
+function renderATKit(){
   const table = document.getElementById("atKitTable");
   if(!table) return;
 
-  table.innerHTML = "";
+  const q = (document.getElementById("atStockSearch")?.value || "").toLowerCase();
 
-  if(!kit || kit.length === 0){
-    table.innerHTML = `<tr><td colspan="8" class="no-data">No AT kit found</td></tr>`;
-    return;
-  }
-
-  kit.forEach(item => {
-    table.innerHTML += `
-      <tr>
-        <td>${escapeHtml(item.kit_type || "")}</td>
-        <td>${escapeHtml(item.kit_number || "")}</td>
-        <td>${escapeHtml(item.size || "")}</td>
-        <td>${escapeHtml(item.condition || "")}</td>
-        <td>${escapeHtml(item.status || "")}</td>
-        <td>${escapeHtml(item.location || "")}</td>
-        <td>${escapeHtml(item.notes || "")}</td>
-        <td>${getATBorrowCount(item)}</td>
-      </tr>
-    `;
-  });
-}
-
-async function loadUniformRequests(){
-  const { data, error } = await supabaseClient
-    .from("uniform_requests")
-    .select("*")
-    .order("requested_at", { ascending:false });
-
-  if(error){
-    console.log(error);
-    return;
-  }
-
-  allUniformRequests = data || [];
-  displayUniformRequests();
-}
-
-function displayUniformRequests(){
-  const table = document.getElementById("uniformRequestsTable");
-  if(!table) return;
-
-  table.innerHTML = "";
-
-  if(!allUniformRequests || allUniformRequests.length === 0){
-    table.innerHTML = `<tr><td colspan="7" class="no-data">No uniform requests found</td></tr>`;
-    return;
-  }
-
-  allUniformRequests.forEach(r => {
-    table.innerHTML += `
-      <tr>
-        <td>${escapeHtml(r.cadet_name || "")}</td>
-        <td>${escapeHtml(r.item || "")}</td>
-        <td>${escapeHtml(r.size || "")}</td>
-        <td>${escapeHtml(r.reason || "")}</td>
-        <td>${escapeHtml(r.status || "")}</td>
-        <td>${formatDate(r.requested_at)}</td>
-        <td>
-          <button class="small-btn approve-btn" onclick="updateUniformRequestStatus(${r.id}, 'Approved')">Approve</button>
-          <button class="small-btn reject-btn" onclick="updateUniformRequestStatus(${r.id}, 'Rejected')">Reject</button>
-        </td>
-      </tr>
-    `;
-  });
-}
-
-async function updateUniformRequestStatus(id, status){
-  const { error } = await supabaseClient
-    .from("uniform_requests")
-    .update({
-      status,
-      reviewed_by: loggedInMode === "staff" ? "Staff Account" : "Temporary Access",
-      reviewed_at:new Date().toISOString()
-    })
-    .eq("id", id);
-
-  if(error){
-    console.log(error);
-    alert("Could not update uniform request.");
-    return;
-  }
-
-  await loadUniformRequests();
-}
-
-/* AT KIT STOCK */
-
-async function loadATKit(){
-  const { data, error } = await supabaseClient
-    .from("at_kit")
-    .select("*")
-    .order("kit_type", { ascending:true });
-
-  if(error){
-    console.log(error);
-    return;
-  }
-
-  allATKit = data || [];
-  await loadATBorrowCounts();
-  displayATKit(allATKit);
-  populateATDropdowns();
-}
-
-async function loadATBorrowCounts(){
-  const { data, error } = await supabaseClient
-    .from("at_kit_issues")
-    .select("kit_id, kit_type, kit_number");
-
-  if(error){
-    console.log(error);
-    allATBorrowCounts = {};
-    return;
-  }
-
-  allATBorrowCounts = {};
-
-  (data || []).forEach(record => {
-    const key = record.kit_id
-      ? `id-${record.kit_id}`
-      : `${record.kit_type || ""}-${record.kit_number || ""}`;
-
-    allATBorrowCounts[key] = (allATBorrowCounts[key] || 0) + 1;
-  });
-}
-
-function getATBorrowCount(item){
-  const keyById = `id-${item.id}`;
-  const keyByName = `${item.kit_type || ""}-${item.kit_number || ""}`;
-
-  return allATBorrowCounts[keyById] || allATBorrowCounts[keyByName] || 0;
-}
-
-function displayATKit(kit){
-  const table = document.getElementById("atKitTable");
-  if(!table) return;
-
-  table.innerHTML = "";
-
-  if(!kit || kit.length === 0){
-    table.innerHTML = `<tr><td colspan="8" class="no-data">No AT kit found</td></tr>`;
-    return;
-  }
-
-  kit.forEach(item => {
-    table.innerHTML += `
-      <tr>
-        <td>${escapeHtml(item.kit_type || "")}</td>
-        <td>${escapeHtml(item.kit_number || "")}</td>
-        <td>${escapeHtml(item.size || "")}</td>
-        <td>${escapeHtml(item.condition || "")}</td>
-        <td>${escapeHtml(item.status || "")}</td>
-        <td>${escapeHtml(item.location || "")}</td>
-        <td>${escapeHtml(item.notes || "")}</td>
-        <td>${getATBorrowCount(item)}</td>
-      </tr>
-    `;
-  });
-}
-
-function searchATKit(){
-  const input = document.getElementById("atSearchInput");
-  if(!input) return;
-
-  const search = input.value.toLowerCase();
-
-  const filtered = allATKit.filter(item =>
-    item.kit_type?.toLowerCase().includes(search) ||
-    item.kit_number?.toLowerCase().includes(search) ||
-    item.status?.toLowerCase().includes(search) ||
-    item.location?.toLowerCase().includes(search)
+  const rows = atKit.filter(x =>
+    [
+      x.kit_type,
+      x.kit_number,
+      x.size,
+      x.condition,
+      x.status,
+      x.location,
+      x.notes
+    ].some(v => String(v || "").toLowerCase().includes(q))
   );
 
-  displayATKit(filtered);
+  table.innerHTML = "";
+
+  if(!rows.length){
+    table.innerHTML = `<tr><td colspan="9" class="no-data">No AT kit found</td></tr>`;
+    return;
+  }
+
+  rows.forEach(x => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(x.kit_type)}</td>
+        <td>${escapeHtml(x.kit_number)}</td>
+        <td>${escapeHtml(x.size)}</td>
+        <td>${escapeHtml(x.condition)}</td>
+        <td>${escapeHtml(x.status || "Available")}</td>
+        <td>${escapeHtml(x.location)}</td>
+        <td>${getBorrowCount(x)}</td>
+        <td>${escapeHtml(x.notes)}</td>
+        <td>
+          <button class="small-btn delete-btn" onclick="deleteATKit('${x.id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
 }
 
 async function addATKit(){
-  if(loggedInMode !== "staff"){
-    alert("Only staff can add AT kit.");
+  const row = {
+    kit_type: document.getElementById("newATType").value.trim(),
+    kit_number: document.getElementById("newATNumber").value.trim(),
+    size: document.getElementById("newATSize").value.trim(),
+    location: document.getElementById("newATLocation").value.trim(),
+    condition: document.getElementById("newATCondition").value.trim() || "Good",
+    notes: document.getElementById("newATNotes").value.trim(),
+    status: "Available"
+  };
+
+  if(!row.kit_type || !row.kit_number){
+    alert("Enter kit type and identifying number");
     return;
   }
 
-  const kitType = document.getElementById("newATType").value.trim();
-  const kitNumber = document.getElementById("newATNumber").value.trim();
-  const size = document.getElementById("newATSize").value.trim();
-  const location = document.getElementById("newATLocation").value.trim();
-  const description = document.getElementById("newATDescription").value.trim();
-  const condition = document.getElementById("newATCondition").value.trim() || "Good";
-  const notes = document.getElementById("newATNotes").value.trim();
-
-  if(!kitType || !kitNumber){
-    alert("Kit type and kit number are required.");
-    return;
-  }
-
-  const { error } = await supabaseClient
+  const {error} = await supabaseClient
     .from("at_kit")
-    .insert([{
-      kit_type:kitType,
-      kit_number:kitNumber,
-      size,
-      location,
-      description,
-      condition,
-      notes,
-      status:"Available"
-    }]);
+    .insert([row]);
 
   if(error){
-    console.log(error);
-    alert("Could not add AT kit. Check the kit number is not already used.");
+    console.error(error);
+    alert("Could not add AT kit");
     return;
   }
 
-  alert("AT kit added.");
+  ["newATType","newATNumber","newATSize","newATLocation","newATNotes"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
 
-  document.getElementById("newATType").value = "";
-  document.getElementById("newATNumber").value = "";
-  document.getElementById("newATSize").value = "";
-  document.getElementById("newATLocation").value = "";
-  document.getElementById("newATDescription").value = "";
   document.getElementById("newATCondition").value = "Good";
-  document.getElementById("newATNotes").value = "";
+
+  await loadATKit();
+}
+async function deleteATKit(id){
+  if(!confirm("Delete this AT kit item?")) return;
+
+  const {error} = await supabaseClient
+    .from("at_kit")
+    .delete()
+    .eq("id",id);
+
+  if(error){
+    console.error(error);
+    alert("Could not delete AT kit");
+    return;
+  }
 
   await loadATKit();
 }
 
-function populateATDropdowns(){
-  const kitTypes = [...new Set(allATKit.map(x => x.kit_type))]
+function populateATIssueTypes(){
+  const select = document.getElementById("atIssueType");
+  if(!select) return;
+
+  const current = select.value;
+
+  select.innerHTML = `<option value="">Select Kit Type</option>`;
+
+  [...new Set(atKit.map(x => x.kit_type))]
     .filter(Boolean)
-    .sort();
-
-  const issueDropdown = document.getElementById("atIssueKitType");
-
-  if(issueDropdown){
-    issueDropdown.innerHTML = `<option value="">Select Kit Type</option>`;
-
-    kitTypes.forEach(type => {
-      issueDropdown.innerHTML += `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`;
+    .sort()
+    .forEach(type => {
+      select.innerHTML += `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`;
     });
-  }
 
-  populateATReturnDropdown();
+  select.value = current;
 }
 
-function updateATNumberDropdown(){
-  const kitTypeDropdown = document.getElementById("atIssueKitType");
-  const numberDropdown = document.getElementById("atIssueKitNumber");
+function populateATIssueNumbers(){
+  const type = document.getElementById("atIssueType").value;
+  const select = document.getElementById("atIssueNumber");
 
-  if(!kitTypeDropdown || !numberDropdown) return;
+  if(!select) return;
 
-  const kitType = kitTypeDropdown.value;
+  select.innerHTML = `<option value="">Select Item Number</option>`;
 
-  numberDropdown.innerHTML = `<option value="">Select Kit Number</option>`;
+  atKit
+    .filter(x => x.kit_type === type && (x.status || "Available") === "Available")
+    .sort((a,b) => String(a.kit_number || "").localeCompare(String(b.kit_number || "")))
+    .forEach(item => {
+      select.innerHTML += `
+        <option value="${item.id}">
+          ${escapeHtml(item.kit_number)}
+          ${item.size ? " - " + escapeHtml(item.size) : ""}
+        </option>
+      `;
+    });
 
-  const availableKit = allATKit
-    .filter(x => x.kit_type === kitType && x.status === "Available")
-    .sort((a,b) => String(a.kit_number || "").localeCompare(String(b.kit_number || "")));
-
-  availableKit.forEach(item => {
-    numberDropdown.innerHTML += `<option value="${item.id}">${escapeHtml(item.kit_number || "")}</option>`;
-  });
-
-  updateATKitInfo();
+  showATIssueInfo();
 }
 
-function updateATKitInfo(){
-  const numberDropdown = document.getElementById("atIssueKitNumber");
-  const box = document.getElementById("atSelectedKitInfo");
+function showATIssueInfo(){
+  const id = document.getElementById("atIssueNumber").value;
+  const box = document.getElementById("atIssueInfo");
 
-  if(!numberDropdown || !box) return;
+  if(!box) return;
 
-  const kitId = numberDropdown.value;
-  const item = allATKit.find(x => String(x.id) === String(kitId));
+  const item = atKit.find(x => String(x.id) === String(id));
 
   if(!item){
-    box.innerHTML = "Select an AT kit type and kit number.";
+    box.innerHTML = "Select a kit item.";
     return;
   }
 
   box.innerHTML = `
-    <strong>Type:</strong> ${escapeHtml(item.kit_type || "")}<br>
-    <strong>Number:</strong> ${escapeHtml(item.kit_number || "")}<br>
-    <strong>Size:</strong> ${escapeHtml(item.size || "")}<br>
-    <strong>Condition:</strong> ${escapeHtml(item.condition || "")}<br>
-    <strong>Location:</strong> ${escapeHtml(item.location || "")}<br>
-    <strong>Borrowed before:</strong> ${getATBorrowCount(item)} time(s)
+    <strong>Type:</strong> ${escapeHtml(item.kit_type)}<br>
+    <strong>Number:</strong> ${escapeHtml(item.kit_number)}<br>
+    <strong>Size:</strong> ${escapeHtml(item.size)}<br>
+    <strong>Condition:</strong> ${escapeHtml(item.condition)}<br>
+    <strong>Location:</strong> ${escapeHtml(item.location)}<br>
+    <strong>Borrowed:</strong> ${getBorrowCount(item)} time(s)
   `;
 }
 
-/* AT ISSUE / RETURN */
-
 async function issueATKit(){
-  if(!loggedInMode){
-    alert("You do not have permission.");
-    return;
-  }
-
-  const cadetName = document.getElementById("atIssueCadetName").value.trim();
-  const kitId = document.getElementById("atIssueKitNumber").value;
+  const cadet = document.getElementById("atIssueCadet").value.trim();
+  const id = document.getElementById("atIssueNumber").value;
   const notes = document.getElementById("atIssueNotes").value.trim();
 
-  const item = allATKit.find(x => String(x.id) === String(kitId));
+  const item = atKit.find(x => String(x.id) === String(id));
 
-  if(!cadetName || !item){
-    alert("Complete cadet name and select kit.");
+  if(!cadet || !item){
+    alert("Enter cadet name and select kit");
     return;
   }
 
-  if(item.status !== "Available"){
-    alert("This kit is not available.");
+  if((item.status || "Available") !== "Available"){
+    alert("This kit is not available");
     return;
   }
 
-  const { error:updateError } = await supabaseClient
+  const {error:updateError} = await supabaseClient
     .from("at_kit")
     .update({
-      status:"Issued",
-      updated_at:new Date().toISOString()
+      status: "Issued",
+      updated_at: todayISO()
     })
     .eq("id", item.id);
 
   if(updateError){
-    console.log(updateError);
-    alert("Could not update AT kit status.");
+    console.error(updateError);
+    alert("Could not update kit status");
     return;
   }
 
-  const { error:insertError } = await supabaseClient
+  const {error:insertError} = await supabaseClient
     .from("at_kit_issues")
     .insert([{
-      kit_id:item.id,
-      kit_type:item.kit_type,
-      kit_number:item.kit_number,
-      cadet_name:cadetName,
-      issued_by: loggedInMode === "staff" ? "Staff Account" : "Temporary Access",
-      returned:false,
+      kit_id: item.id,
+      kit_type: item.kit_type,
+      kit_number: item.kit_number,
+      cadet_name: cadet,
+      issued_by: "Staff",
+      returned: false,
       notes
     }]);
 
   if(insertError){
-    console.log(insertError);
-    alert("Kit marked as issued but history did not save.");
+    console.error(insertError);
+    alert("Kit status updated, but issue history did not save");
     return;
   }
 
-  alert("AT kit issued.");
+  alert("AT kit issued");
 
-  document.getElementById("atIssueCadetName").value = "";
-  document.getElementById("atIssueKitType").value = "";
-  document.getElementById("atIssueKitNumber").innerHTML = `<option value="">Select Kit Number</option>`;
+  document.getElementById("atIssueCadet").value = "";
+  document.getElementById("atIssueType").value = "";
+  document.getElementById("atIssueNumber").innerHTML = `<option value="">Select Item Number</option>`;
   document.getElementById("atIssueNotes").value = "";
 
   await loadATKit();
-  await loadATIssueHistory();
+  await loadATIssues();
 }
 
-/* AT KIT LISTS */
+async function loadATIssues(){
+  const {data,error} = await supabaseClient
+    .from("at_kit_issues")
+    .select("*")
+    .order("issued_at",{ascending:false});
 
-async function loadATKitLists(){
-  const { data: lists, error: listError } = await supabaseClient
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  atIssues = data || [];
+  renderATIssues();
+}
+
+function renderATIssues(){
+  const table = document.getElementById("atIssueTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(!atIssues.length){
+    table.innerHTML = `<tr><td colspan="5" class="no-data">No AT kit issue records found</td></tr>`;
+    return;
+  }
+
+  atIssues.forEach(x => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(x.cadet_name)}</td>
+        <td>${escapeHtml(x.kit_type)}</td>
+        <td>${escapeHtml(x.kit_number)}</td>
+        <td>${formatDate(x.issued_at || x.created_at)}</td>
+        <td>${x.returned ? "Yes" : `<button onclick="returnATKit('${x.id}')">Return</button>`}</td>
+      </tr>
+    `;
+  });
+}
+
+async function returnATKit(issueId){
+  const issue = atIssues.find(x => String(x.id) === String(issueId));
+
+  if(!issue){
+    alert("Issue record not found");
+    return;
+  }
+
+  if(!confirm("Mark this kit as returned?")) return;
+
+  const {error:updateIssueError} = await supabaseClient
+    .from("at_kit_issues")
+    .update({
+      returned: true,
+      return_date: todayISO()
+    })
+    .eq("id", issue.id);
+
+  if(updateIssueError){
+    console.error(updateIssueError);
+    alert("Could not mark issue as returned");
+    return;
+  }
+
+  if(issue.kit_id){
+    const {error:updateKitError} = await supabaseClient
+      .from("at_kit")
+      .update({
+        status: "Available",
+        updated_at: todayISO()
+      })
+      .eq("id", issue.kit_id);
+
+    if(updateKitError){
+      console.error(updateKitError);
+      alert("Issue returned, but kit status may not have updated");
+    }
+  }
+
+  await loadATKit();
+  await loadATIssues();
+}
+/* KIT LISTS */
+
+async function loadKitLists(){
+  const {data:lists,error:listError} = await supabaseClient
     .from("at_kit_lists")
     .select("*")
-    .eq("active", true)
-    .order("activity_name", { ascending:true });
+    .eq("active",true)
+    .order("activity_name",{ascending:true});
 
   if(listError){
-    console.log(listError);
+    console.error(listError);
     return;
   }
 
-  const { data: items, error: itemError } = await supabaseClient
+  const {data:items,error:itemError} = await supabaseClient
     .from("at_kit_list_items")
     .select("*")
-    .order("display_order", { ascending:true });
+    .order("display_order",{ascending:true});
 
   if(itemError){
-    console.log(itemError);
+    console.error(itemError);
     return;
   }
 
-  allATKitLists = lists || [];
-  allATKitListItems = items || [];
+  kitLists = lists || [];
+  kitListItems = items || [];
 
-  populateATKitListDropdowns();
-  populateKitCheckDropdown();
-  await loadKitCheckEvents();
+  populateKitListSelects();
+  populateEventIssueLists();
+  populateCheckerLists();
+  populateCadetATEvents();
+  renderKitListItems();
 }
 
-function populateATKitListDropdowns(){
-  const staffDropdown = document.getElementById("kitListSelect");
-  const cadetDropdown = document.getElementById("atRequestActivity");
+function populateKitListSelects(){
+  const select = document.getElementById("kitListDropdown");
+  if(!select) return;
 
-  if(staffDropdown){
-    staffDropdown.innerHTML = `<option value="">Select Kit List</option>`;
+  const current = select.value;
 
-    allATKitLists.forEach(list => {
-      staffDropdown.innerHTML += `
-        <option value="${list.id}">
-          ${escapeHtml(list.activity_name || "Unnamed Kit List")}
-        </option>
-      `;
-    });
-  }
+  select.innerHTML = `<option value="">Select Kit List</option>`;
 
-  if(cadetDropdown){
-    cadetDropdown.innerHTML = `<option value="">Select Activity</option>`;
+  kitLists.forEach(list => {
+    select.innerHTML += `
+      <option value="${list.id}">
+        ${escapeHtml(list.activity_name)}
+      </option>
+    `;
+  });
 
-    allATKitLists.forEach(list => {
-      cadetDropdown.innerHTML += `
-        <option value="${list.id}">
-          ${escapeHtml(list.activity_name || "Unnamed Kit List")}
-        </option>
-      `;
-    });
-  }
+  select.value = current;
 }
 
-async function createATKitList(){
-  if(loggedInMode !== "staff"){
-    alert("Only staff can create kit lists.");
+async function createKitList(){
+  const name = document.getElementById("kitListName").value.trim();
+  const notes = document.getElementById("kitListNotes").value.trim();
+
+  if(!name){
+    alert("Enter an activity or event name");
     return;
   }
 
-  const activityName = document.getElementById("newKitListName").value.trim();
-  const notes = document.getElementById("newKitListNotes").value.trim();
-
-  if(!activityName){
-    alert("Enter an activity name.");
-    return;
-  }
-
-  const { error } = await supabaseClient
+  const {error} = await supabaseClient
     .from("at_kit_lists")
     .insert([{
-      activity_name: activityName,
+      activity_name: name,
       notes,
       active: true
     }]);
 
   if(error){
-    console.log(error);
-    alert("Could not create kit list. It may already exist.");
+    console.error(error);
+    alert("Could not create kit list");
     return;
   }
 
-  alert("Kit list created.");
+  document.getElementById("kitListName").value = "";
+  document.getElementById("kitListNotes").value = "";
 
-  document.getElementById("newKitListName").value = "";
-  document.getElementById("newKitListNotes").value = "";
-
-  await loadATKitLists();
+  await loadKitLists();
 }
 
 async function addItemToKitList(){
-  if(loggedInMode !== "staff"){
-    alert("Only staff can edit kit lists.");
-    return;
-  }
-
-  const kitListId = document.getElementById("kitListSelect").value;
-  const item = document.getElementById("newKitListItem").value.trim();
-  const required = document.getElementById("newKitListRequired").value === "true";
+  const kitListId = document.getElementById("kitListDropdown").value;
+  const item = document.getElementById("kitListItem").value.trim();
+  const required = document.getElementById("kitListRequired").value === "true";
 
   if(!kitListId || !item){
-    alert("Select a kit list and enter an item.");
+    alert("Select a kit list and enter an item");
     return;
   }
 
-  const currentItems = allATKitListItems.filter(x => String(x.kit_list_id) === String(kitListId));
+  const existing = kitListItems.filter(x => String(x.kit_list_id) === String(kitListId));
 
-  const { error } = await supabaseClient
+  const {error} = await supabaseClient
     .from("at_kit_list_items")
     .insert([{
       kit_list_id: kitListId,
       kit_type: item,
       required,
-      display_order: currentItems.length + 1
+      display_order: existing.length + 1
     }]);
 
   if(error){
-    console.log(error);
-    alert("Could not add item.");
+    console.error(error);
+    alert("Could not add item to kit list");
     return;
   }
 
-  document.getElementById("newKitListItem").value = "";
+  document.getElementById("kitListItem").value = "";
 
-  await loadATKitLists();
-  loadSelectedKitListItems();
+  await loadKitLists();
 }
 
-async function bulkAddItemsToKitList(){
-  if(loggedInMode !== "staff"){
-    alert("Only staff can edit kit lists.");
-    return;
-  }
-
-  const kitListId = document.getElementById("kitListSelect").value;
-  const bulkText = document.getElementById("bulkKitListItems").value.trim();
-  const required = document.getElementById("newKitListRequired").value === "true";
-
-  if(!kitListId){
-    alert("Select a kit list first.");
-    return;
-  }
-
-  if(!bulkText){
-    alert("Paste at least one item.");
-    return;
-  }
-
-  const items = bulkText
-    .split(/\r?\n/)
-    .map(item => item.trim())
-    .filter(item => item.length > 0);
-
-  if(items.length === 0){
-    alert("No valid items found.");
-    return;
-  }
-
-  const existingItems = allATKitListItems
-    .filter(x => String(x.kit_list_id) === String(kitListId));
-
-  const startOrder = existingItems.length + 1;
-
-  const rows = items.map((item, index) => ({
-    kit_list_id: kitListId,
-    kit_type: item,
-    required,
-    display_order: startOrder + index
-  }));
-
-  const { error } = await supabaseClient
-    .from("at_kit_list_items")
-    .insert(rows);
-
-  if(error){
-    console.log(error);
-    alert("Could not bulk add items.");
-    return;
-  }
-
-  alert(`${items.length} kit items added.`);
-
-  document.getElementById("bulkKitListItems").value = "";
-
-  await loadATKitLists();
-  loadSelectedKitListItems();
-}
-
-function loadSelectedKitListItems(){
-  const kitListId = document.getElementById("kitListSelect").value;
+function renderKitListItems(){
   const table = document.getElementById("kitListItemsTable");
-
-  if(!table){
-    return;
-  }
+  if(!table) return;
 
   table.innerHTML = "";
 
-  if(!kitListId){
-    table.innerHTML = `<tr><td colspan="3" class="no-data">Select a kit list</td></tr>`;
+  if(!kitListItems.length){
+    table.innerHTML = `<tr><td colspan="3" class="no-data">No kit list items found</td></tr>`;
     return;
   }
 
-  const items = allATKitListItems
-    .filter(x => String(x.kit_list_id) === String(kitListId))
-    .sort((a,b) => Number(a.display_order || 0) - Number(b.display_order || 0));
+  kitListItems.forEach(item => {
+    const list = kitLists.find(x => String(x.id) === String(item.kit_list_id));
 
-  if(items.length === 0){
-    table.innerHTML = `<tr><td colspan="3" class="no-data">No items in this kit list</td></tr>`;
-    return;
-  }
-
-  items.forEach(item => {
     table.innerHTML += `
       <tr>
-        <td>${escapeHtml(item.kit_type || "")}</td>
+        <td>${escapeHtml(list?.activity_name || "Unknown")}</td>
+        <td>${escapeHtml(item.kit_type)}</td>
         <td>${item.required ? "Required" : "Optional"}</td>
-        <td>
-          <button class="small-btn reject-btn" onclick="deleteKitListItem(${item.id})">Delete</button>
-        </td>
       </tr>
     `;
   });
 }
 
-async function deleteKitListItem(id){
-  if(loggedInMode !== "staff"){
-    alert("Only staff can edit kit lists.");
-    return;
-  }
+/* EVENT ISSUE SHEET */
 
-  const { error } = await supabaseClient
-    .from("at_kit_list_items")
-    .delete()
-    .eq("id", id);
+function populateEventIssueLists(){
+  const select = document.getElementById("eventIssueDropdown");
+  if(!select) return;
 
-  if(error){
-    console.log(error);
-    alert("Could not delete item.");
-    return;
-  }
+  const current = select.value;
 
-  await loadATKitLists();
-  loadSelectedKitListItems();
-}
+  select.innerHTML = `<option value="">Select Event</option>`;
 
-/* AT REQUESTS */
-
-function loadATRequestChecklist(){
-  const activityDropdown = document.getElementById("atRequestActivity");
-  const box = document.getElementById("atChecklistBox");
-
-  if(!activityDropdown || !box) return;
-
-  const kitListId = activityDropdown.value;
-
-  if(!kitListId){
-    box.innerHTML = "Select an activity to see the kit list.";
-    return;
-  }
-
-  const items = allATKitListItems
-    .filter(x => String(x.kit_list_id) === String(kitListId))
-    .sort((a,b) => Number(a.display_order || 0) - Number(b.display_order || 0));
-
-  if(items.length === 0){
-    box.innerHTML = "No kit list has been added for this activity yet.";
-    return;
-  }
-
-  let html = `<strong>Tick the items you need to borrow:</strong><br><br>`;
-
-  items.forEach(item => {
-    html += `
-      <label class="checkbox-row">
-        <input type="checkbox" class="at-kit-checkbox" value="${escapeHtml(item.kit_type || "")}">
-        ${escapeHtml(item.kit_type || "")}
-        ${item.required ? "<span class='required-tag'>Required</span>" : "<span class='optional-tag'>Optional</span>"}
-      </label>
-    `;
-  });
-
-  box.innerHTML = html;
-}
-
-async function submitATRequest(){
-  const cadetName = document.getElementById("atRequestCadetName").value.trim();
-  const kitListId = document.getElementById("atRequestActivity").value;
-  const eventDate = document.getElementById("atRequestEventDate").value;
-  const reason = document.getElementById("atRequestReason").value.trim();
-
-  if(!cadetName || !kitListId){
-    alert("Please complete your name and select an activity.");
-    return;
-  }
-
-  const selectedList = allATKitLists.find(x => String(x.id) === String(kitListId));
-
-  if(!selectedList){
-    alert("Activity not found.");
-    return;
-  }
-
-  const selectedItems = Array
-    .from(document.querySelectorAll(".at-kit-checkbox:checked"))
-    .map(box => box.value);
-
-  if(selectedItems.length === 0){
-    alert("Please tick at least one item.");
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("at_kit_requests")
-    .insert([{
-      cadet_name: cadetName,
-      activity_name: selectedList.activity_name,
-      kit_type: selectedItems.join(", "),
-      requested_items: selectedItems,
-      event_date: eventDate || null,
-      reason,
-      status: "Pending"
-    }]);
-
-  if(error){
-    console.log(error);
-    alert("AT kit request failed.");
-    return;
-  }
-
-  alert("AT kit request submitted successfully.");
-
-  document.getElementById("atRequestCadetName").value = "";
-  document.getElementById("atRequestActivity").value = "";
-  document.getElementById("atRequestEventDate").value = "";
-  document.getElementById("atRequestReason").value = "";
-  document.getElementById("atChecklistBox").innerHTML = "Select an activity to see the kit list.";
-
-  await loadATRequests();
-}
-
-async function bulkAddItemsToKitList(){
-  if(loggedInMode !== "staff"){
-    alert("Only staff can edit kit lists.");
-    return;
-  }
-
-  const kitListId = document.getElementById("kitListSelect").value;
-  const bulkText = document.getElementById("bulkKitListItems").value.trim();
-  const required = document.getElementById("newKitListRequired").value === "true";
-
-  if(!kitListId){
-    alert("Select a kit list first.");
-    return;
-  }
-
-  if(!bulkText){
-    alert("Paste at least one item.");
-    return;
-  }
-
-  const items = bulkText
-    .split(/\r?\n/)
-    .map(item => item.trim())
-    .filter(item => item.length > 0);
-
-  if(items.length === 0){
-    alert("No valid items found.");
-    return;
-  }
-
-  const existingItems = allATKitListItems
-    .filter(x => String(x.kit_list_id) === String(kitListId));
-
-  const startOrder = existingItems.length + 1;
-
-  const rows = items.map((item, index) => ({
-    kit_list_id: kitListId,
-    kit_type: item,
-    required,
-    display_order: startOrder + index
-  }));
-
-  const { error } = await supabaseClient
-    .from("at_kit_list_items")
-    .insert(rows);
-
-  if(error){
-    console.log(error);
-    alert("Could not bulk add items.");
-    return;
-  }
-
-  alert(`${items.length} kit items added.`);
-
-  document.getElementById("bulkKitListItems").value = "";
-
-  await loadATKitLists();
-  loadSelectedKitListItems();
-}
-
-function loadSelectedKitListItems(){
-  const kitListId = document.getElementById("kitListSelect").value;
-  const table = document.getElementById("kitListItemsTable");
-
-  if(!table){
-    return;
-  }
-
-  table.innerHTML = "";
-
-  if(!kitListId){
-    table.innerHTML = `<tr><td colspan="3" class="no-data">Select a kit list</td></tr>`;
-    return;
-  }
-
-  const items = allATKitListItems
-    .filter(x => String(x.kit_list_id) === String(kitListId))
-    .sort((a,b) => Number(a.display_order || 0) - Number(b.display_order || 0));
-
-  if(items.length === 0){
-    table.innerHTML = `<tr><td colspan="3" class="no-data">No items in this kit list</td></tr>`;
-    return;
-  }
-
-  items.forEach(item => {
-    table.innerHTML += `
-      <tr>
-        <td>${escapeHtml(item.kit_type || "")}</td>
-        <td>${item.required ? "Required" : "Optional"}</td>
-        <td>
-          <button class="small-btn reject-btn" onclick="deleteKitListItem(${item.id})">Delete</button>
-        </td>
-      </tr>
-    `;
-  });
-}
-
-async function deleteKitListItem(id){
-  if(loggedInMode !== "staff"){
-    alert("Only staff can edit kit lists.");
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("at_kit_list_items")
-    .delete()
-    .eq("id", id);
-
-  if(error){
-    console.log(error);
-    alert("Could not delete item.");
-    return;
-  }
-
-  await loadATKitLists();
-  loadSelectedKitListItems();
-}
-
-/* AT REQUESTS */
-
-function loadATRequestChecklist(){
-  const activityDropdown = document.getElementById("atRequestActivity");
-  const box = document.getElementById("atChecklistBox");
-
-  if(!activityDropdown || !box) return;
-
-  const kitListId = activityDropdown.value;
-
-  if(!kitListId){
-    box.innerHTML = "Select an activity to see the kit list.";
-    return;
-  }
-
-  const items = allATKitListItems
-    .filter(x => String(x.kit_list_id) === String(kitListId))
-    .sort((a,b) => Number(a.display_order || 0) - Number(b.display_order || 0));
-
-  if(items.length === 0){
-    box.innerHTML = "No kit list has been added for this activity yet.";
-    return;
-  }
-
-  let html = `<strong>Tick the items you need to borrow:</strong><br><br>`;
-
-  items.forEach(item => {
-    html += `
-      <label class="checkbox-row">
-        <input type="checkbox" class="at-kit-checkbox" value="${escapeHtml(item.kit_type || "")}">
-        ${escapeHtml(item.kit_type || "")}
-        ${item.required ? "<span class='required-tag'>Required</span>" : "<span class='optional-tag'>Optional</span>"}
-      </label>
-    `;
-  });
-
-  box.innerHTML = html;
-}
-
-async function submitATRequest(){
-  const cadetName = document.getElementById("atRequestCadetName").value.trim();
-  const kitListId = document.getElementById("atRequestActivity").value;
-  const eventDate = document.getElementById("atRequestEventDate").value;
-  const reason = document.getElementById("atRequestReason").value.trim();
-
-  if(!cadetName || !kitListId){
-    alert("Please complete your name and select an activity.");
-    return;
-  }
-
-  const selectedList = allATKitLists.find(x => String(x.id) === String(kitListId));
-
-  if(!selectedList){
-    alert("Activity not found.");
-    return;
-  }
-
-  const selectedItems = Array
-    .from(document.querySelectorAll(".at-kit-checkbox:checked"))
-    .map(box => box.value);
-
-  if(selectedItems.length === 0){
-    alert("Please tick at least one item.");
-    return;
-  }
-
-  const { error } = await supabaseClient
-    .from("at_kit_requests")
-    .insert([{
-      cadet_name: cadetName,
-      activity_name: selectedList.activity_name,
-      kit_type: selectedItems.join(", "),
-      requested_items: selectedItems,
-      event_date: eventDate || null,
-      reason,
-      status: "Pending"
-    }]);
-
-  if(error){
-    console.log(error);
-    alert("AT kit request failed.");
-    return;
-  }
-
-  alert("AT kit request submitted successfully.");
-
-  document.getElementById("atRequestCadetName").value = "";
-  document.getElementById("atRequestActivity").value = "";
-  document.getElementById("atRequestEventDate").value = "";
-  document.getElementById("atRequestReason").value = "";
-  document.getElementById("atChecklistBox").innerHTML = "Select an activity to see the kit list.";
-
-  await loadATRequests();
-}
-
-/* EVENT KIT CHECK */
-
-function populateKitCheckDropdown(){
-  const dropdown = document.getElementById("eventKitList");
-
-  if(!dropdown){
-    return;
-  }
-
-  dropdown.innerHTML = `<option value="">Select Kit List</option>`;
-
-  allATKitLists.forEach(list => {
-    dropdown.innerHTML += `
+  kitLists.forEach(list => {
+    select.innerHTML += `
       <option value="${list.id}">
-        ${escapeHtml(list.activity_name || list.name || list.event_name || list.kit_list_name || "Unnamed Kit List")}
+        ${escapeHtml(list.activity_name)}
       </option>
+    `;
+  });
+
+  select.value = current;
+}
+
+function loadEventIssueSheet(){
+  selectedEventIssueListId = document.getElementById("eventIssueDropdown")?.value || "";
+  renderEventIssueSheet();
+}
+
+function renderEventIssueSheet(){
+  const table = document.getElementById("eventIssueTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  const rows = eventIssueRows.filter(row =>
+    !selectedEventIssueListId ||
+    String(row.eventId) === String(selectedEventIssueListId)
+  );
+
+  if(!rows.length){
+    table.innerHTML = `<tr><td colspan="5" class="no-data">No event issue records found</td></tr>`;
+    return;
+  }
+
+  rows.forEach(row => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(row.eventName)}</td>
+        <td>${escapeHtml(row.cadet)}</td>
+        <td>${escapeHtml(row.kitType)}</td>
+        <td>${escapeHtml(row.itemNumber)}</td>
+        <td>${formatDate(row.dateIssued)}</td>
+      </tr>
     `;
   });
 }
 
-async function loadKitCheckEvents(){
-  const dropdown = document.getElementById("existingKitCheckEvent");
+/* KIT CHECKER */
 
-  if(!dropdown){
-    return;
-  }
+function populateCheckerLists(){
+  const select = document.getElementById("kitCheckerEvent");
+  if(!select) return;
 
-  const { data, error } = await supabaseClient
-    .from("at_kit_check_events")
-    .select("*")
-    .order("event_date", { ascending:false });
+  const current = select.value;
 
-  if(error){
-    console.log(error);
-    alert("Could not load kit check events.");
-    return;
-  }
+  select.innerHTML = `<option value="">Select Event</option>`;
 
-  dropdown.innerHTML = `<option value="">Select Existing Event</option>`;
-
-  (data || []).forEach(event => {
-    dropdown.innerHTML += `
-      <option value="${event.id}">
-        ${escapeHtml(event.event_name || "Unnamed Event")}
-        ${event.event_date ? " - " + event.event_date : ""}
+  kitLists.forEach(list => {
+    select.innerHTML += `
+      <option value="${list.id}">
+        ${escapeHtml(list.activity_name)}
       </option>
     `;
   });
+
+  select.value = current;
 }
 
-async function createKitCheckEvent(){
-  const eventName = document.getElementById("eventName").value.trim();
-  const kitListId = document.getElementById("eventKitList").value;
-  const eventDate = document.getElementById("eventDate").value;
-
-  if(!eventName || !kitListId){
-    alert("Complete event name and kit list.");
-    return;
-  }
-
-  const { data, error } = await supabaseClient
-    .from("at_kit_check_events")
-    .insert([{
-      event_name: eventName,
-      kit_list_id: kitListId,
-      event_date: eventDate || null
-    }])
-    .select();
-
-  if(error){
-    console.log(error);
-    alert("Could not create event.");
-    return;
-  }
-
-  currentKitCheckEvent = data[0];
-
-  await loadKitCheckEvents();
-
-  const existingDropdown = document.getElementById("existingKitCheckEvent");
-  if(existingDropdown){
-    existingDropdown.value = currentKitCheckEvent.id;
-  }
-
-  alert("Event created. Now add cadets.");
-
-  await loadKitCheckTable();
+function loadKitChecker(){
+  selectedCheckerListId = document.getElementById("kitCheckerEvent")?.value || "";
+  renderKitCheckerCadets();
+  renderMultiIssueTable();
 }
 
-async function openSelectedKitCheckEvent(){
-  const dropdown = document.getElementById("existingKitCheckEvent");
-
-  if(!dropdown || !dropdown.value){
-    currentKitCheckEvent = null;
-    document.getElementById("kitCheckTable").innerHTML = "";
-    return;
-  }
-
-  const { data, error } = await supabaseClient
-    .from("at_kit_check_events")
-    .select("*")
-    .eq("id", dropdown.value)
-    .single();
-
-  if(error){
-    console.log(error);
-    alert("Could not open this event.");
-    return;
-  }
-
-  currentKitCheckEvent = data;
-
-  const eventName = document.getElementById("eventName");
-  const eventDate = document.getElementById("eventDate");
-  const eventKitList = document.getElementById("eventKitList");
-
-  if(eventName) eventName.value = data.event_name || "";
-  if(eventDate) eventDate.value = data.event_date || "";
-  if(eventKitList) eventKitList.value = data.kit_list_id || "";
-
-  await loadKitCheckTable();
+function loadKitCheckerEvent(){
+  loadKitChecker();
 }
 
-async function addCadetsToEvent(){
-  if(!currentKitCheckEvent){
-    alert("Create or open an event first.");
+function saveKitCheckerCadets(){
+  const eventId = document.getElementById("kitCheckerEvent").value;
+  const text = document.getElementById("kitCheckerCadets").value;
+
+  if(!eventId){
+    alert("Select an event first");
     return;
   }
-
-  const text = document.getElementById("cadetBulkList").value;
 
   const cadets = text
     .split(/\r?\n/)
-    .map(name => name.trim())
-    .filter(name => name.length > 0);
+    .map(x => x.trim())
+    .filter(Boolean);
 
-  if(cadets.length === 0){
-    alert("Enter at least one cadet.");
+  if(!cadets.length){
+    alert("Enter at least one cadet");
     return;
   }
 
-  const kitItems = allATKitListItems.filter(
-    item => String(item.kit_list_id) === String(currentKitCheckEvent.kit_list_id)
-  );
+  eventCadets[eventId] = cadets;
 
-  if(kitItems.length === 0){
-    alert("This kit list has no items.");
-    return;
+  if(!checkerData[eventId]){
+    checkerData[eventId] = {};
   }
-
-  const rows = [];
 
   cadets.forEach(cadet => {
-    kitItems.forEach(item => {
-      rows.push({
-        event_id: currentKitCheckEvent.id,
-        cadet_name: cadet,
-        kit_item: item.kit_type,
-        brought: false
-      });
+    if(!checkerData[eventId][cadet]){
+      checkerData[eventId][cadet] = {};
+    }
+  });
+
+  saveLocal();
+  renderKitCheckerCadets();
+
+  alert("Cadets saved");
+}
+
+function renderKitCheckerCadets(){
+  const table = document.getElementById("kitCheckerCadetTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(!selectedCheckerListId){
+    table.innerHTML = `<tr><td colspan="2" class="no-data">Select an event</td></tr>`;
+    return;
+  }
+
+  const cadets = eventCadets[selectedCheckerListId] || [];
+
+  if(!cadets.length){
+    table.innerHTML = `<tr><td colspan="2" class="no-data">No cadets saved for this event</td></tr>`;
+    return;
+  }
+
+  cadets.forEach(cadet => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(cadet)}</td>
+        <td>
+          <button onclick="openKitIssueModal('${escapeHtml(cadet)}')">
+            Select Kit
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+}
+function openKitIssueModal(cadet){
+  modalCadet = cadet;
+
+  const modal = document.getElementById("kitIssueModal");
+  const title = document.getElementById("modalCadetName");
+  const checklist = document.getElementById("modalKitChecklist");
+
+  if(!modal || !title || !checklist) return;
+
+  title.innerText = "Issue kit to " + cadet;
+  checklist.innerHTML = "";
+
+  const items = kitListItems
+    .filter(x => String(x.kit_list_id) === String(selectedCheckerListId))
+    .sort((a,b) => Number(a.display_order || 0) - Number(b.display_order || 0));
+
+  if(!items.length){
+    checklist.innerHTML = `<p>No kit items found for this event.</p>`;
+  }
+
+  items.forEach(item => {
+    checklist.innerHTML += `
+      <label>
+        <input type="checkbox" class="modal-kit-check" value="${escapeHtml(item.kit_type)}">
+        ${escapeHtml(item.kit_type)}
+        ${item.required ? " (Required)" : " (Optional)"}
+      </label>
+      <br>
+    `;
+  });
+
+  modal.style.display = "block";
+}
+
+function closeKitIssueModal(){
+  const modal = document.getElementById("kitIssueModal");
+  if(modal) modal.style.display = "none";
+  modalCadet = "";
+}
+
+function confirmMultiIssueSelection(){
+  const checked = Array
+    .from(document.querySelectorAll(".modal-kit-check:checked"))
+    .map(x => x.value);
+
+  if(!checked.length){
+    alert("Select at least one kit item");
+    return;
+  }
+
+  const event = kitLists.find(x => String(x.id) === String(selectedCheckerListId));
+
+  checked.forEach(kitType => {
+    eventIssueRows.push({
+      id: Date.now() + Math.random(),
+      eventId: selectedCheckerListId,
+      eventName: event?.activity_name || "Unknown Event",
+      cadet: modalCadet,
+      kitType,
+      itemNumber: "",
+      dateIssued: ""
     });
   });
 
-  const { error } = await supabaseClient
-    .from("at_kit_check_results")
-    .insert(rows);
-
-  if(error){
-    console.log(error);
-    alert("Could not create checklist.");
-    return;
-  }
-
-  alert("Cadets added. All boxes have started unticked.");
-
-  document.getElementById("cadetBulkList").value = "";
-
-  await loadKitCheckTable();
+  saveLocal();
+  closeKitIssueModal();
+  renderMultiIssueTable();
+  renderEventIssueSheet();
 }
 
-async function loadKitCheckTable(){
-  const tableBox = document.getElementById("kitCheckTable");
+function renderMultiIssueTable(){
+  const table = document.getElementById("multiIssueTable");
+  if(!table) return;
 
-  if(!tableBox){
+  table.innerHTML = "";
+
+  const rows = eventIssueRows.filter(row =>
+    String(row.eventId) === String(selectedCheckerListId) &&
+    !row.dateIssued
+  );
+
+  if(!selectedCheckerListId){
+    table.innerHTML = `<tr><td colspan="6" class="no-data">Select an event</td></tr>`;
     return;
   }
 
-  if(!currentKitCheckEvent){
-    tableBox.innerHTML = "";
+  if(!rows.length){
+    table.innerHTML = `<tr><td colspan="6" class="no-data">No kit selected for issue</td></tr>`;
     return;
   }
 
-  const { data, error } = await supabaseClient
-    .from("at_kit_check_results")
-    .select("*")
-    .eq("event_id", currentKitCheckEvent.id)
-    .order("cadet_name");
-
-  if(error){
-    console.log(error);
-    alert("Could not load checklist.");
-    return;
-  }
-
-  const results = data || [];
-
-  if(results.length === 0){
-    tableBox.innerHTML = `
-      <div class="no-data">No cadets added to this event yet.</div>
-    `;
-    return;
-  }
-
-  const cadets = [...new Set(results.map(r => r.cadet_name))];
-  const items = [...new Set(results.map(r => r.kit_item))];
-
-  let html = `
-    <table>
-      <thead>
-        <tr>
-          <th>Cadet</th>
-          ${items.map(item => `<th>${escapeHtml(item)}</th>`).join("")}
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  cadets.forEach(cadet => {
-    html += `<tr><td><strong>${escapeHtml(cadet)}</strong></td>`;
-
-    items.forEach(item => {
-      const record = results.find(r => r.cadet_name === cadet && r.kit_item === item);
-
-      html += `
+  rows.forEach(row => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(row.eventName)}</td>
+        <td>${escapeHtml(row.cadet)}</td>
+        <td>${escapeHtml(row.kitType)}</td>
         <td>
-          <input 
-            type="checkbox" 
-            ${record?.brought ? "checked" : ""} 
-            onchange="updateKitCheckResult(${record.id}, this.checked)">
+          <select onchange="setEventIssueItemNumber('${row.id}', this.value)">
+            <option value="">Select item number</option>
+            ${getAvailableATItemOptions(row.kitType, row.itemNumber)}
+          </select>
         </td>
+        <td>
+          <button onclick="issueEventKit('${row.id}')">
+            Issue
+          </button>
+        </td>
+        <td>
+          <button onclick="removeEventIssueRow('${row.id}')">
+            Remove
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function getAvailableATItemOptions(type, selectedNumber){
+  let html = "";
+
+  atKit
+    .filter(x => x.kit_type === type)
+    .filter(x => (x.status || "Available") === "Available" || x.kit_number === selectedNumber)
+    .sort((a,b) => String(a.kit_number || "").localeCompare(String(b.kit_number || "")))
+    .forEach(item => {
+      html += `
+        <option value="${escapeHtml(item.kit_number)}" ${item.kit_number === selectedNumber ? "selected" : ""}>
+          ${escapeHtml(item.kit_number)}
+          ${item.size ? " - " + escapeHtml(item.size) : ""}
+        </option>
       `;
     });
 
-    html += `</tr>`;
-  });
-
-  html += `
-      </tbody>
-    </table>
-  `;
-
-  tableBox.innerHTML = html;
+  return html;
 }
 
-async function updateKitCheckResult(id, brought){
-  const { error } = await supabaseClient
-    .from("at_kit_check_results")
-    .update({
-      brought,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", id);
+function setEventIssueItemNumber(rowId, number){
+  const row = eventIssueRows.find(x => String(x.id) === String(rowId));
+  if(!row) return;
 
-  if(error){
-    console.log(error);
-    alert("Could not save tick box.");
-  }
+  row.itemNumber = number;
+  saveLocal();
 }
 
-async function deleteCurrentKitCheckEvent(){
-  if(!currentKitCheckEvent){
-    alert("Open or create an event first.");
+async function issueEventKit(rowId){
+  const row = eventIssueRows.find(x => String(x.id) === String(rowId));
+
+  if(!row){
+    alert("Issue row not found");
     return;
   }
 
-  const confirmDelete = confirm(
-    "Are you sure you want to delete this event kit check? This will permanently delete the checklist for this event."
+  if(!row.itemNumber){
+    alert("Select the item number given");
+    return;
+  }
+
+  const item = atKit.find(x =>
+    x.kit_type === row.kitType &&
+    x.kit_number === row.itemNumber
   );
 
-  if(!confirmDelete){
+  if(!item){
+    alert("AT kit item not found");
     return;
   }
 
-  const { error:resultsError } = await supabaseClient
-    .from("at_kit_check_results")
-    .delete()
-    .eq("event_id", currentKitCheckEvent.id);
-
-  if(resultsError){
-    console.log(resultsError);
-    alert("Could not delete checklist results.");
+  if((item.status || "Available") !== "Available"){
+    alert("This item is not available");
     return;
   }
 
-  const { error:eventError } = await supabaseClient
-    .from("at_kit_check_events")
-    .delete()
-    .eq("id", currentKitCheckEvent.id);
+  const {error:updateError} = await supabaseClient
+    .from("at_kit")
+    .update({
+      status: "Issued",
+      updated_at: todayISO()
+    })
+    .eq("id", item.id);
 
-  if(eventError){
-    console.log(eventError);
-    alert("Could not delete event.");
+  if(updateError){
+    console.error(updateError);
+    alert("Could not update item status");
     return;
   }
 
-  alert("Event kit check deleted.");
+  const {error:insertError} = await supabaseClient
+    .from("at_kit_issues")
+    .insert([{
+      kit_id: item.id,
+      kit_type: item.kit_type,
+      kit_number: item.kit_number,
+      cadet_name: row.cadet,
+      issued_by: "Staff",
+      returned: false,
+      notes: "Issued for event: " + row.eventName
+    }]);
 
-  currentKitCheckEvent = null;
+  if(insertError){
+    console.error(insertError);
+    alert("Kit was marked issued but history did not save");
+    return;
+  }
 
-  const tableBox = document.getElementById("kitCheckTable");
-  const cadetBulkList = document.getElementById("cadetBulkList");
-  const eventName = document.getElementById("eventName");
-  const eventDate = document.getElementById("eventDate");
-  const eventKitList = document.getElementById("eventKitList");
-  const existingDropdown = document.getElementById("existingKitCheckEvent");
+  row.dateIssued = todayISO();
 
-  if(tableBox) tableBox.innerHTML = "";
-  if(cadetBulkList) cadetBulkList.value = "";
-  if(eventName) eventName.value = "";
-  if(eventDate) eventDate.value = "";
-  if(eventKitList) eventKitList.value = "";
-  if(existingDropdown) existingDropdown.value = "";
+  saveLocal();
 
-  await loadKitCheckEvents();
+  await loadATKit();
+  await loadATIssues();
+
+  renderMultiIssueTable();
+  renderEventIssueSheet();
 }
+
+function removeEventIssueRow(rowId){
+  eventIssueRows = eventIssueRows.filter(x => String(x.id) !== String(rowId));
+  saveLocal();
+  renderMultiIssueTable();
+  renderEventIssueSheet();
+}
+/* CADET AT REQUESTS */
+
+function populateCadetATEvents(){
+  const select = document.getElementById("cadetATEvent");
+  if(!select) return;
+
+  select.innerHTML = `<option value="">Select Event</option>`;
+
+  kitLists.forEach(list => {
+    select.innerHTML += `
+      <option value="${list.id}">
+        ${escapeHtml(list.activity_name)}
+      </option>
+    `;
+  });
+}
+
+function loadCadetATKitList(){
+  const eventId = document.getElementById("cadetATEvent").value;
+  const box = document.getElementById("cadetATKitChecklist");
+
+  if(!box) return;
+
+  box.innerHTML = "";
+
+  if(!eventId){
+    box.innerHTML = `<p>Select an event to see the kit list.</p>`;
+    return;
+  }
+
+  const items = kitListItems
+    .filter(x => String(x.kit_list_id) === String(eventId))
+    .sort((a,b) => Number(a.display_order || 0) - Number(b.display_order || 0));
+
+  if(!items.length){
+    box.innerHTML = `<p>No kit list has been created for this event.</p>`;
+    return;
+  }
+
+  items.forEach(item => {
+    box.innerHTML += `
+      <label class="checkbox-row">
+        <input
+          type="checkbox"
+          class="cadet-at-kit-check"
+          value="${escapeHtml(item.kit_type)}"
+        >
+        ${escapeHtml(item.kit_type)}
+        ${item.required ? "<strong> Required</strong>" : " Optional"}
+      </label>
+    `;
+  });
+}
+
+async function submitCadetATRequest(){
+  const cadet = document.getElementById("cadetATName").value.trim();
+  const eventId = document.getElementById("cadetATEvent").value;
+
+  if(!cadet || !eventId){
+    alert("Enter your name and select an event");
+    return;
+  }
+
+  const event = kitLists.find(x => String(x.id) === String(eventId));
+
+  const selectedItems = Array
+    .from(document.querySelectorAll(".cadet-at-kit-check:checked"))
+    .map(x => x.value);
+
+  if(!selectedItems.length){
+    alert("Tick at least one item");
+    return;
+  }
+
+  const {error} = await supabaseClient
+    .from("at_kit_requests")
+    .insert([{
+      cadet_name: cadet,
+      activity_name: event?.activity_name || "Unknown Event",
+      kit_type: selectedItems.join(", "),
+      requested_items: selectedItems,
+      reason: "Cadet AT kit request",
+      status: "Pending"
+    }]);
+
+  if(error){
+    console.error(error);
+    alert("Could not submit AT kit request");
+    return;
+  }
+
+  alert("AT kit request submitted");
+
+  document.getElementById("cadetATName").value = "";
+  document.getElementById("cadetATEvent").value = "";
+  document.getElementById("cadetATKitChecklist").innerHTML = "";
+}
+
+async function loadATRequests(){
+  const {data,error} = await supabaseClient
+    .from("at_kit_requests")
+    .select("*")
+    .order("requested_at",{ascending:false});
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  atRequests = data || [];
+  renderATRequests();
+}
+
+function renderATRequests(){
+  const table = document.getElementById("atRequestsTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(!atRequests.length){
+    table.innerHTML = `<tr><td colspan="4" class="no-data">No AT kit requests found</td></tr>`;
+    return;
+  }
+
+  atRequests.forEach(x => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(x.cadet_name)}</td>
+        <td>${escapeHtml(x.activity_name)}</td>
+        <td>${escapeHtml(Array.isArray(x.requested_items) ? x.requested_items.join(", ") : x.kit_type)}</td>
+        <td>${formatDate(x.requested_at || x.created_at)}</td>
+      </tr>
+    `;
+  });
+}
+
+/* SERVICEABILITY CHECKS */
+
+async function loadServiceChecks(){
+  const {data,error} = await supabaseClient
+    .from("serviceability_checks")
+    .select("*")
+    .order("next_due_date",{ascending:true});
+
+  if(error){
+    console.error(error);
+    serviceChecks = [];
+    renderServiceability();
+    return;
+  }
+
+  serviceChecks = data || [];
+  renderServiceability();
+}
+
+function populateServiceKitItems(){
+  const select = document.getElementById("serviceItemNumber");
+  if(!select) return;
+
+  // This input is intentionally free text, but we add a datalist if possible.
+}
+
+async function addServiceabilityCheck(){
+  const itemNumber = document.getElementById("serviceItemNumber").value.trim();
+  const lastCheck = document.getElementById("serviceCheckDate").value;
+  const interval = Number(document.getElementById("serviceInterval").value || 365);
+
+  if(!itemNumber || !lastCheck || interval < 1){
+    alert("Enter item number, last check date and interval");
+    return;
+  }
+
+  const nextDue = new Date(lastCheck);
+  nextDue.setDate(nextDue.getDate() + interval);
+
+  const {error} = await supabaseClient
+    .from("serviceability_checks")
+    .insert([{
+      item_number: itemNumber,
+      last_check_date: lastCheck,
+      interval_days: interval,
+      next_due_date: nextDue.toISOString().slice(0,10)
+    }]);
+
+  if(error){
+    console.error(error);
+    alert("Could not save serviceability check. Check the database table exists.");
+    return;
+  }
+
+  document.getElementById("serviceItemNumber").value = "";
+  document.getElementById("serviceCheckDate").value = "";
+  document.getElementById("serviceInterval").value = "365";
+
+  await loadServiceChecks();
+}
+
+function renderServiceability(){
+  const table = document.getElementById("serviceabilityTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(!serviceChecks.length){
+    table.innerHTML = `<tr><td colspan="4" class="no-data">No serviceability checks found</td></tr>`;
+    return;
+  }
+
+  const today = new Date();
+
+  serviceChecks.forEach(row => {
+    const due = new Date(row.next_due_date);
+    const diffMs = due - today;
+    const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    let statusClass = "";
+    if(days <= 0) statusClass = "out-stock";
+    else if(days <= 30) statusClass = "low-stock";
+    else statusClass = "good-stock";
+
+    table.innerHTML += `
+      <tr class="${statusClass}">
+        <td>${escapeHtml(row.item_number)}</td>
+        <td>${escapeHtml(row.last_check_date)}</td>
+        <td>${escapeHtml(row.next_due_date)}</td>
+        <td>${days}</td>
+      </tr>
+    `;
+  });
+}
+/* STARTUP */
+
+document.addEventListener("DOMContentLoaded", async () => {
+  hideAll();
+  document.getElementById("homeScreen").classList.remove("hidden");
+
+  try{
+    await loadKitLists();
+    await loadUniformStock();
+  }catch(error){
+    console.error(error);
+  }
+});
