@@ -118,7 +118,7 @@ header p{
   padding:12px;
   border-radius:10px;
   border:1px solid #ccc;
-  min-width:220px;
+  min-width:260px;
 }
 
 .page{
@@ -246,6 +246,37 @@ tr:hover{
 .disable-btn{
   background:#d60000;
   color:white;
+}
+
+.checkbox-row{
+  display:block;
+  background:white;
+  padding:10px;
+  border-radius:8px;
+  margin-bottom:8px;
+  border:1px solid #ddd;
+}
+
+.checkbox-row input{
+  margin-right:8px;
+}
+
+.required-tag{
+  background:#002147;
+  color:white;
+  padding:3px 7px;
+  border-radius:6px;
+  font-size:12px;
+  margin-left:8px;
+}
+
+.optional-tag{
+  background:#777;
+  color:white;
+  padding:3px 7px;
+  border-radius:6px;
+  font-size:12px;
+  margin-left:8px;
 }
 
 @media(max-width:800px){
