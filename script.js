@@ -885,3 +885,528 @@ function searchATIssueHistory(){
   displayATIssueHistory(filtered);
 }  await loadUniformRequests();
 }}
+/* AT KIT LISTS */
+
+async function loadATKitLists(){
+  const { data: lists, error: listError } = await supabaseClient
+    .from("at_kit_lists")
+    .select("*")
+    .eq("active", true)
+    .order("activity_name", { ascending:true });
+
+  if(listError){
+    console.log(listError);
+    return;
+  }
+
+  const { data: items, error: itemError } = await supabaseClient
+    .from("at_kit_list_items")
+    .select("*")
+    .order("display_order", { ascending:true });
+
+  if(itemError){
+    console.log(itemError);
+    return;
+  }
+
+  allATKitLists = lists || [];
+  allATKitListItems = items || [];
+
+  populateATKitListDropdowns();
+}
+
+function populateATKitListDropdowns(){
+  const staffDropdown = document.getElementById("kitListSelect");
+  const cadetDropdown = document.getElementById("atRequestActivity");
+
+  if(staffDropdown){
+    staffDropdown.innerHTML = `<option value="">Select Kit List</option>`;
+
+    allATKitLists.forEach(list => {
+      staffDropdown.innerHTML += `<option value="${list.id}">${escapeHtml(list.activity_name)}</option>`;
+    });
+  }
+
+  if(cadetDropdown){
+    cadetDropdown.innerHTML = `<option value="">Select Activity</option>`;
+
+    allATKitLists.forEach(list => {
+      cadetDropdown.innerHTML += `<option value="${list.id}">${escapeHtml(list.activity_name)}</option>`;
+    });
+  }
+}
+
+async function createATKitList(){
+  if(loggedInMode !== "staff"){
+    alert("Only staff can create kit lists.");
+    return;
+  }
+
+  const activityName = document.getElementById("newKitListName").value.trim();
+  const notes = document.getElementById("newKitListNotes").value.trim();
+
+  if(!activityName){
+    alert("Enter an activity name.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("at_kit_lists")
+    .insert([{
+      activity_name: activityName,
+      notes,
+      active: true
+    }]);
+
+  if(error){
+    console.log(error);
+    alert("Could not create kit list. It may already exist.");
+    return;
+  }
+
+  alert("Kit list created.");
+
+  document.getElementById("newKitListName").value = "";
+  document.getElementById("newKitListNotes").value = "";
+
+  await loadATKitLists();
+}
+
+async function addItemToKitList(){
+  if(loggedInMode !== "staff"){
+    alert("Only staff can edit kit lists.");
+    return;
+  }
+
+  const kitListId = document.getElementById("kitListSelect").value;
+  const item = document.getElementById("newKitListItem").value.trim();
+  const required = document.getElementById("newKitListRequired").value === "true";
+
+  if(!kitListId || !item){
+    alert("Select a kit list and enter an item.");
+    return;
+  }
+
+  const currentItems = allATKitListItems.filter(x => String(x.kit_list_id) === String(kitListId));
+
+  const { error } = await supabaseClient
+    .from("at_kit_list_items")
+    .insert([{
+      kit_list_id: kitListId,
+      kit_type: item,
+      required,
+      display_order: currentItems.length + 1
+    }]);
+
+  if(error){
+    console.log(error);
+    alert("Could not add item.");
+    return;
+  }
+
+  document.getElementById("newKitListItem").value = "";
+
+  await loadATKitLists();
+  loadSelectedKitListItems();
+}
+
+async function bulkAddItemsToKitList(){
+  if(loggedInMode !== "staff"){
+    alert("Only staff can edit kit lists.");
+    return;
+  }
+
+  const kitListId = document.getElementById("kitListSelect").value;
+  const bulkText = document.getElementById("bulkKitListItems").value.trim();
+  const required = document.getElementById("newKitListRequired").value === "true";
+
+  if(!kitListId){
+    alert("Select a kit list first.");
+    return;
+  }
+
+  if(!bulkText){
+    alert("Paste at least one item.");
+    return;
+  }
+
+  const items = bulkText
+    .split(/\r?\n/)
+    .map(item => item.trim())
+    .filter(item => item.length > 0);
+
+  if(items.length === 0){
+    alert("No valid items found.");
+    return;
+  }
+
+  const existingItems = allATKitListItems
+    .filter(x => String(x.kit_list_id) === String(kitListId));
+
+  const startOrder = existingItems.length + 1;
+
+  const rows = items.map((item, index) => ({
+    kit_list_id: kitListId,
+    kit_type: item,
+    required: required,
+    display_order: startOrder + index
+  }));
+
+  const { error } = await supabaseClient
+    .from("at_kit_list_items")
+    .insert(rows);
+
+  if(error){
+    console.log(error);
+    alert("Could not bulk add items.");
+    return;
+  }
+
+  alert(`${items.length} kit items added.`);
+
+  document.getElementById("bulkKitListItems").value = "";
+
+  await loadATKitLists();
+  loadSelectedKitListItems();
+}
+
+function loadSelectedKitListItems(){
+  const kitListId = document.getElementById("kitListSelect").value;
+  const table = document.getElementById("kitListItemsTable");
+
+  if(!table){
+    return;
+  }
+
+  table.innerHTML = "";
+
+  if(!kitListId){
+    table.innerHTML = `<tr><td colspan="3" class="no-data">Select a kit list</td></tr>`;
+    return;
+  }
+
+  const items = allATKitListItems
+    .filter(x => String(x.kit_list_id) === String(kitListId))
+    .sort((a,b) => Number(a.display_order || 0) - Number(b.display_order || 0));
+
+  if(items.length === 0){
+    table.innerHTML = `<tr><td colspan="3" class="no-data">No items in this kit list</td></tr>`;
+    return;
+  }
+
+  items.forEach(item => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(item.kit_type)}</td>
+        <td>${item.required ? "Required" : "Optional"}</td>
+        <td>
+          <button class="small-btn reject-btn" onclick="deleteKitListItem(${item.id})">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function deleteKitListItem(id){
+  if(loggedInMode !== "staff"){
+    alert("Only staff can edit kit lists.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("at_kit_list_items")
+    .delete()
+    .eq("id", id);
+
+  if(error){
+    console.log(error);
+    alert("Could not delete item.");
+    return;
+  }
+
+  await loadATKitLists();
+  loadSelectedKitListItems();
+}
+
+/* AT REQUESTS */
+
+function loadATRequestChecklist(){
+  const kitListId = document.getElementById("atRequestActivity").value;
+  const box = document.getElementById("atChecklistBox");
+
+  if(!kitListId){
+    box.innerHTML = "Select an activity to see the kit list.";
+    return;
+  }
+
+  const items = allATKitListItems
+    .filter(x => String(x.kit_list_id) === String(kitListId))
+    .sort((a,b) => Number(a.display_order || 0) - Number(b.display_order || 0));
+
+  if(items.length === 0){
+    box.innerHTML = "No kit list has been added for this activity yet.";
+    return;
+  }
+
+  let html = `<strong>Tick the items you need to borrow:</strong><br><br>`;
+
+  items.forEach(item => {
+    html += `
+      <label class="checkbox-row">
+        <input type="checkbox" class="at-kit-checkbox" value="${escapeHtml(item.kit_type)}">
+        ${escapeHtml(item.kit_type)}
+        ${item.required ? "<span class='required-tag'>Required</span>" : "<span class='optional-tag'>Optional</span>"}
+      </label>
+    `;
+  });
+
+  box.innerHTML = html;
+}
+
+async function submitATRequest(){
+  const cadetName = document.getElementById("atRequestCadetName").value.trim();
+  const kitListId = document.getElementById("atRequestActivity").value;
+  const eventDate = document.getElementById("atRequestEventDate").value;
+  const reason = document.getElementById("atRequestReason").value.trim();
+
+  if(!cadetName || !kitListId){
+    alert("Please complete your name and select an activity.");
+    return;
+  }
+
+  const selectedList = allATKitLists.find(x => String(x.id) === String(kitListId));
+
+  if(!selectedList){
+    alert("Activity not found.");
+    return;
+  }
+
+  const selectedItems = Array
+    .from(document.querySelectorAll(".at-kit-checkbox:checked"))
+    .map(box => box.value);
+
+  if(selectedItems.length === 0){
+    alert("Please tick at least one item.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("at_kit_requests")
+    .insert([{
+      cadet_name: cadetName,
+      activity_name: selectedList.activity_name,
+      kit_type: selectedItems.join(", "),
+      requested_items: selectedItems,
+      event_date: eventDate || null,
+      reason,
+      status: "Pending"
+    }]);
+
+  if(error){
+    console.log(error);
+    alert("AT kit request failed.");
+    return;
+  }
+
+  alert("AT kit request submitted successfully.");
+
+  document.getElementById("atRequestCadetName").value = "";
+  document.getElementById("atRequestActivity").value = "";
+  document.getElementById("atRequestEventDate").value = "";
+  document.getElementById("atRequestReason").value = "";
+  document.getElementById("atChecklistBox").innerHTML = "Select an activity to see the kit list.";
+}
+
+async function loadATRequests(){
+  const { data, error } = await supabaseClient
+    .from("at_kit_requests")
+    .select("*")
+    .order("requested_at", { ascending:false });
+
+  if(error){
+    console.log(error);
+    return;
+  }
+
+  allATRequests = data || [];
+  displayATRequests();
+}
+
+function displayATRequests(){
+  const table = document.getElementById("atRequestsTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(allATRequests.length === 0){
+    table.innerHTML = `<tr><td colspan="6" class="no-data">No AT requests found</td></tr>`;
+    return;
+  }
+
+  allATRequests.forEach(r => {
+    let itemsText = "";
+
+    if(Array.isArray(r.requested_items)){
+      itemsText = r.requested_items.map(item => escapeHtml(item)).join("<br>");
+    } else {
+      itemsText = escapeHtml(r.kit_type || "");
+    }
+
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(r.cadet_name)}</td>
+        <td>
+          <strong>${escapeHtml(r.activity_name || "AT Kit")}</strong><br>
+          ${itemsText}
+        </td>
+        <td>${escapeHtml(r.reason || "")}</td>
+        <td>${escapeHtml(r.status)}</td>
+        <td>${formatDate(r.requested_at)}</td>
+        <td>
+          <button class="small-btn approve-btn" onclick="updateATRequestStatus(${r.id}, 'Approved')">Approve</button>
+          <button class="small-btn reject-btn" onclick="updateATRequestStatus(${r.id}, 'Rejected')">Reject</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function updateATRequestStatus(id, status){
+  const { error } = await supabaseClient
+    .from("at_kit_requests")
+    .update({
+      status,
+      reviewed_by: loggedInMode === "staff" ? "Staff Account" : "Temporary Access",
+      reviewed_at:new Date().toISOString()
+    })
+    .eq("id", id);
+
+  if(error){
+    alert("Could not update AT request.");
+    return;
+  }
+
+  await loadATRequests();
+}
+
+/* TEMP PASSWORDS */
+
+async function createTempPassword(){
+  if(loggedInMode !== "staff"){
+    alert("Only the staff account can create temporary passwords.");
+    return;
+  }
+
+  const password = document.getElementById("tempPassword").value.trim();
+  const note = document.getElementById("tempNote").value.trim();
+  const expiresAt = document.getElementById("tempExpiry").value;
+
+  if(!password || !expiresAt){
+    alert("Enter a password and expiry date/time.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("temporary_passwords")
+    .insert([{
+      password,
+      note,
+      expires_at:expiresAt,
+      active:true
+    }]);
+
+  if(error){
+    alert("Could not create temporary password.");
+    return;
+  }
+
+  alert("Temporary password created.");
+
+  document.getElementById("tempPassword").value = "";
+  document.getElementById("tempNote").value = "";
+  document.getElementById("tempExpiry").value = "";
+
+  await loadTemporaryPasswords();
+}
+
+async function loadTemporaryPasswords(){
+  if(loggedInMode !== "staff"){
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("temporary_passwords")
+    .select("*")
+    .order("created_at", { ascending:false });
+
+  if(error){
+    console.log(error);
+    return;
+  }
+
+  allTempPasswords = data || [];
+  displayTemporaryPasswords();
+}
+
+function displayTemporaryPasswords(){
+  const table = document.getElementById("tempPasswordsTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(allTempPasswords.length === 0){
+    table.innerHTML = `<tr><td colspan="5" class="no-data">No temporary passwords found</td></tr>`;
+    return;
+  }
+
+  allTempPasswords.forEach(p => {
+    const expired = new Date(p.expires_at) < new Date();
+
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(p.password)}</td>
+        <td>${escapeHtml(p.note || "")}</td>
+        <td>${formatDate(p.expires_at)} ${expired ? "(Expired)" : ""}</td>
+        <td>${p.active ? "Yes" : "No"}</td>
+        <td>
+          <button class="small-btn disable-btn" onclick="disableTempPassword(${p.id})">Disable</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function disableTempPassword(id){
+  if(loggedInMode !== "staff"){
+    alert("Only staff can disable temporary passwords.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("temporary_passwords")
+    .update({ active:false })
+    .eq("id", id);
+
+  if(error){
+    alert("Could not disable password.");
+    return;
+  }
+
+  await loadTemporaryPasswords();
+}
+
+/* HELPERS */
+
+function formatDate(value){
+  if(!value) return "";
+  return new Date(value).toLocaleString("en-GB");
+}
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
