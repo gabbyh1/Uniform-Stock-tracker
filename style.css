@@ -279,6 +279,35 @@ tr:hover{
   margin-left:8px;
 }
 
+.bulk-box{
+  background:#f1f5f9;
+  border-left:5px solid #002147;
+  padding:15px;
+  margin:20px 0;
+  border-radius:10px;
+}
+
+.bulk-box h3{
+  margin-top:0;
+  color:#002147;
+}
+
+.bulk-box p{
+  color:#555;
+  margin-top:0;
+}
+
+.bulk-box textarea{
+  width:100%;
+  min-height:160px;
+  padding:12px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-family:Arial, Helvetica, sans-serif;
+  font-size:15px;
+  resize:vertical;
+}
+
 @media(max-width:800px){
   .form-grid{
     grid-template-columns:1fr;
