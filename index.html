@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1384 Uniform Stock</title>
+  <title>1384 Kit System</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -12,9 +12,10 @@
 
 <div id="homeScreen" class="login-screen">
   <div class="login-box">
-    <h1>1384 Uniform Stock</h1>
+    <h1>1384 Kit System</h1>
     <p>Select access type</p>
-    <button onclick="openCadetRequest()">Cadet Uniform Request</button>
+    <button onclick="openUniformRequest()">Cadet Uniform Request</button>
+    <button onclick="openATRequest()">Cadet AT Kit Request</button>
     <button onclick="openStaffLogin()">Staff / Temporary Login</button>
   </div>
 </div>
@@ -31,7 +32,7 @@
 <div id="mainContent" class="main-content" style="display:none;">
 
 <header>
-  <h1>1384 Uniform Stock</h1>
+  <h1>1384 Kit System</h1>
   <p id="loggedInAs"></p>
   <button onclick="logout()" class="logout-btn">Logout</button>
 </header>
@@ -41,49 +42,44 @@
   <select id="pageSelect" onchange="changePage()"></select>
 </nav>
 
-<section id="stockPage" class="page active-page">
+<section id="uniformStockPage" class="page active-page">
   <section class="top-controls">
-    <input id="searchInput" placeholder="Search item, size or box..." onkeyup="searchStock()">
-    <button onclick="loadStock()">Refresh</button>
+    <input id="uniformSearchInput" placeholder="Search uniform item, size or box..." onkeyup="searchUniformStock()">
+    <button onclick="loadUniformStock()">Refresh</button>
   </section>
 
   <section class="card">
-    <h2>Current Stock</h2>
+    <h2>Uniform Stock</h2>
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr>
-            <th>Item</th>
-            <th>Size</th>
-            <th>Box</th>
-            <th>Qty</th>
-          </tr>
+          <tr><th>Item</th><th>Size</th><th>Box</th><th>Qty</th></tr>
         </thead>
-        <tbody id="stockTable"></tbody>
+        <tbody id="uniformStockTable"></tbody>
       </table>
     </div>
   </section>
 </section>
 
-<section id="issuePage" class="page">
+<section id="uniformIssuePage" class="page">
   <section class="card">
     <h2>Issue Uniform</h2>
 
     <div class="form-grid">
-      <input id="issueCadetName" placeholder="Cadet Name">
+      <input id="uniformIssueCadetName" placeholder="Cadet Name">
 
-      <select id="issueItem" onchange="updateIssueSizeDropdown()">
+      <select id="uniformIssueItem" onchange="updateUniformIssueSizeDropdown()">
         <option value="">Select Item</option>
       </select>
 
-      <select id="issueSize" onchange="updateBoxInfo()">
+      <select id="uniformIssueSize" onchange="updateUniformBoxInfo()">
         <option value="">Select Size</option>
       </select>
 
-      <input id="issueQty" type="number" value="1" min="1">
+      <input id="uniformIssueQty" type="number" value="1" min="1">
     </div>
 
-    <div id="selectedStockInfo" class="selected-stock-info">
+    <div id="uniformSelectedStockInfo" class="selected-stock-info">
       Select an item and size.
     </div>
 
@@ -91,53 +87,154 @@
   </section>
 </section>
 
-<section id="historyPage" class="page">
+<section id="uniformHistoryPage" class="page">
   <section class="card">
-    <h2>Issue History</h2>
+    <h2>Uniform Issue History</h2>
 
     <section class="top-controls history-controls">
-      <input id="historySearchInput" placeholder="Search history..." onkeyup="searchIssueHistory()">
-      <button onclick="loadIssueHistory()">Refresh</button>
+      <input id="uniformHistorySearchInput" placeholder="Search uniform history..." onkeyup="searchUniformIssueHistory()">
+      <button onclick="loadUniformIssueHistory()">Refresh</button>
     </section>
 
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr>
-            <th>Cadet</th>
-            <th>Item</th>
-            <th>Size</th>
-            <th>Box</th>
-            <th>Qty</th>
-            <th>Date</th>
-            <th>Returned</th>
-          </tr>
+          <tr><th>Cadet</th><th>Item</th><th>Size</th><th>Box</th><th>Qty</th><th>Date</th><th>Returned</th></tr>
         </thead>
-        <tbody id="issueHistoryTable"></tbody>
+        <tbody id="uniformIssueHistoryTable"></tbody>
       </table>
     </div>
   </section>
 </section>
 
-<section id="requestsPage" class="page">
+<section id="uniformRequestsPage" class="page">
   <section class="card">
     <h2>Uniform Requests</h2>
-    <button class="main-button" onclick="loadRequests()">Refresh Requests</button>
+    <button class="main-button" onclick="loadUniformRequests()">Refresh Requests</button>
 
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr>
-            <th>Cadet</th>
-            <th>Item</th>
-            <th>Size</th>
-            <th>Reason</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Action</th>
-          </tr>
+          <tr><th>Cadet</th><th>Item</th><th>Size</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
         </thead>
-        <tbody id="requestsTable"></tbody>
+        <tbody id="uniformRequestsTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<section id="atStockPage" class="page">
+  <section class="top-controls">
+    <input id="atSearchInput" placeholder="Search AT kit type, number, status or location..." onkeyup="searchATKit()">
+    <button onclick="loadATKit()">Refresh</button>
+  </section>
+
+  <section class="card">
+    <h2>AT Kit Stock</h2>
+
+    <div class="form-grid">
+      <input id="newATType" placeholder="Kit Type e.g. Helmet">
+      <input id="newATNumber" placeholder="Kit Number e.g. HEL-001">
+      <input id="newATSize" placeholder="Size">
+      <input id="newATLocation" placeholder="Location">
+    </div>
+
+    <div class="form-grid">
+      <input id="newATDescription" placeholder="Description">
+      <input id="newATCondition" placeholder="Condition" value="Good">
+      <input id="newATNotes" placeholder="Notes">
+      <button class="main-button" onclick="addATKit()">Add AT Kit</button>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Number</th><th>Size</th><th>Condition</th><th>Status</th><th>Location</th><th>Notes</th></tr>
+        </thead>
+        <tbody id="atKitTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<section id="atIssuePage" class="page">
+  <section class="card">
+    <h2>Issue AT Kit</h2>
+
+    <div class="form-grid">
+      <input id="atIssueCadetName" placeholder="Cadet Name">
+
+      <select id="atIssueKitType" onchange="updateATNumberDropdown()">
+        <option value="">Select Kit Type</option>
+      </select>
+
+      <select id="atIssueKitNumber" onchange="updateATKitInfo()">
+        <option value="">Select Kit Number</option>
+      </select>
+
+      <input id="atIssueNotes" placeholder="Notes">
+    </div>
+
+    <div id="atSelectedKitInfo" class="selected-stock-info">
+      Select an AT kit type and kit number.
+    </div>
+
+    <button class="main-button" onclick="issueATKit()">Issue AT Kit</button>
+  </section>
+</section>
+
+<section id="atReturnPage" class="page">
+  <section class="card">
+    <h2>Return AT Kit</h2>
+
+    <div class="form-grid">
+      <select id="atReturnKitNumber" onchange="updateATReturnInfo()">
+        <option value="">Select Issued Kit Number</option>
+      </select>
+
+      <input id="atReturnCondition" placeholder="Return Condition" value="Good">
+      <input id="atReturnNotes" placeholder="Return Notes">
+    </div>
+
+    <div id="atReturnInfo" class="selected-stock-info">
+      Select issued kit to return.
+    </div>
+
+    <button class="main-button" onclick="returnATKit()">Return AT Kit</button>
+  </section>
+</section>
+
+<section id="atHistoryPage" class="page">
+  <section class="card">
+    <h2>AT Kit Issue History</h2>
+
+    <section class="top-controls history-controls">
+      <input id="atHistorySearchInput" placeholder="Search AT history..." onkeyup="searchATIssueHistory()">
+      <button onclick="loadATIssueHistory()">Refresh</button>
+    </section>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Cadet</th><th>Type</th><th>Number</th><th>Issued</th><th>Returned</th><th>Return Date</th><th>Condition</th></tr>
+        </thead>
+        <tbody id="atIssueHistoryTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<section id="atRequestsPage" class="page">
+  <section class="card">
+    <h2>AT Kit Requests</h2>
+    <button class="main-button" onclick="loadATRequests()">Refresh Requests</button>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Cadet</th><th>Kit Type</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
+        </thead>
+        <tbody id="atRequestsTable"></tbody>
       </table>
     </div>
   </section>
@@ -158,13 +255,7 @@
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr>
-            <th>Password</th>
-            <th>Note</th>
-            <th>Expires</th>
-            <th>Active</th>
-            <th>Action</th>
-          </tr>
+          <tr><th>Password</th><th>Note</th><th>Expires</th><th>Active</th><th>Action</th></tr>
         </thead>
         <tbody id="tempPasswordsTable"></tbody>
       </table>
@@ -174,8 +265,7 @@
 
 </div>
 
-<div id="cadetRequestPage" class="main-content" style="display:none;">
-
+<div id="uniformRequestPage" class="main-content" style="display:none;">
 <header>
   <h1>1384 Uniform Request</h1>
   <p>Use this page to request replacement or new uniform.</p>
@@ -186,26 +276,49 @@
   <h2>Request Uniform</h2>
 
   <div class="form-grid">
-    <input id="requestCadetName" placeholder="Your name">
+    <input id="uniformRequestCadetName" placeholder="Your name">
 
-    <select id="requestItem" onchange="updateRequestSizeDropdown()">
+    <select id="uniformRequestItem" onchange="updateUniformRequestSizeDropdown()">
       <option value="">Select Item</option>
     </select>
 
-    <select id="requestSize">
+    <select id="uniformRequestSize">
       <option value="">Select Size</option>
     </select>
 
-    <input id="requestReason" placeholder="Reason / notes">
+    <input id="uniformRequestReason" placeholder="Reason / notes">
   </div>
 
-  <button class="main-button" onclick="submitUniformRequest()">Submit Request</button>
-
-  <p class="hint">This page only submits requests. It cannot access stock, issuing or history.</p>
+  <button class="main-button" onclick="submitUniformRequest()">Submit Uniform Request</button>
+  <p class="hint">This page only submits uniform requests.</p>
 </section>
-
 </div>
 
-<script src="./script.js?v=20"></script>
+<div id="atRequestPage" class="main-content" style="display:none;">
+<header>
+  <h1>1384 AT Kit Request</h1>
+  <p>Use this page to request adventurous training kit.</p>
+  <button onclick="backHome()" class="logout-btn">Back</button>
+</header>
+
+<section class="card">
+  <h2>Request AT Kit</h2>
+
+  <div class="form-grid">
+    <input id="atRequestCadetName" placeholder="Your name">
+
+    <select id="atRequestKitType">
+      <option value="">Select Kit Type</option>
+    </select>
+
+    <input id="atRequestReason" placeholder="Reason / event / notes">
+  </div>
+
+  <button class="main-button" onclick="submitATRequest()">Submit AT Kit Request</button>
+  <p class="hint">This page only submits AT kit requests.</p>
+</section>
+</div>
+
+<script src="./script.js?v=30"></script>
 </body>
 </html>
