@@ -14,7 +14,6 @@
   <div class="login-box">
     <h1>1384 Uniform Stock</h1>
     <p>Select access type</p>
-
     <button onclick="openCadetRequest()">Cadet Uniform Request</button>
     <button onclick="openStaffLogin()">Staff / Temporary Login</button>
   </div>
@@ -23,7 +22,7 @@
 <div id="staffLoginScreen" class="login-screen" style="display:none;">
   <div class="login-box">
     <h1>Staff Login</h1>
-    <input id="staffPasswordInput" type="password" placeholder="Enter staff or temporary password">
+    <input id="staffPasswordInput" type="password" placeholder="Enter password">
     <button onclick="staffLogin()">Login</button>
     <button class="secondary-btn" onclick="backHome()">Back</button>
   </div>
@@ -39,13 +38,7 @@
 
 <nav class="page-menu">
   <label>Select Page</label>
-  <select id="pageSelect" onchange="changePage()">
-    <option value="stockPage">Current Stock</option>
-    <option value="issuePage">Issue Uniform</option>
-    <option value="historyPage">Issue History</option>
-    <option value="requestsPage">Uniform Requests</option>
-    <option value="tempPasswordPage">Temporary Passwords</option>
-  </select>
+  <select id="pageSelect" onchange="changePage()"></select>
 </nav>
 
 <section id="stockPage" class="page active-page">
@@ -59,7 +52,12 @@
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr><th>Item</th><th>Size</th><th>Box</th><th>Qty</th></tr>
+          <tr>
+            <th>Item</th>
+            <th>Size</th>
+            <th>Box</th>
+            <th>Qty</th>
+          </tr>
         </thead>
         <tbody id="stockTable"></tbody>
       </table>
@@ -105,7 +103,15 @@
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr><th>Cadet</th><th>Item</th><th>Size</th><th>Box</th><th>Qty</th><th>Date</th><th>Returned</th></tr>
+          <tr>
+            <th>Cadet</th>
+            <th>Item</th>
+            <th>Size</th>
+            <th>Box</th>
+            <th>Qty</th>
+            <th>Date</th>
+            <th>Returned</th>
+          </tr>
         </thead>
         <tbody id="issueHistoryTable"></tbody>
       </table>
@@ -121,7 +127,15 @@
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr><th>Cadet</th><th>Item</th><th>Size</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
+          <tr>
+            <th>Cadet</th>
+            <th>Item</th>
+            <th>Size</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
         </thead>
         <tbody id="requestsTable"></tbody>
       </table>
@@ -144,7 +158,13 @@
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr><th>Password</th><th>Note</th><th>Expires</th><th>Active</th><th>Action</th></tr>
+          <tr>
+            <th>Password</th>
+            <th>Note</th>
+            <th>Expires</th>
+            <th>Active</th>
+            <th>Action</th>
+          </tr>
         </thead>
         <tbody id="tempPasswordsTable"></tbody>
       </table>
@@ -186,6 +206,6 @@
 
 </div>
 
-<script src="script.js"></script>
+<script src="./script.js?v=20"></script>
 </body>
 </html>
