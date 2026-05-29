@@ -18,6 +18,7 @@ let allATKitLists = [];
 let allATKitListItems = [];
 
 let allTempPasswords = [];
+let currentKitCheckEvent = null;
 
 function hideAllScreens(){
   document.getElementById("homeScreen").style.display = "none";
@@ -49,7 +50,6 @@ async function openATRequest(){
   document.getElementById("atRequestPage").style.display = "block";
   await loadATKit();
   await loadATKitLists();
-  populateKitCheckDropdown();
 }
 
 function logout(){
@@ -132,40 +132,19 @@ async function openFullSite(label){
 
   pageSelect.value = "uniformStockPage";
 
- await loadUniformStock();
-await loadUniformIssueHistory();
-await loadUniformRequests();
-await loadATKit();
-await loadATIssueHistory();
-await loadATRequests();
-await loadATKitLists();  
-console.log("Loaded kit lists:", allATKitLists);
-populateKitCheckDropdown();
-  
+  await loadUniformStock();
+  await loadUniformIssueHistory();
+  await loadUniformRequests();
+  await loadATKit();
+  await loadATIssueHistory();
+  await loadATRequests();
+  await loadATKitLists();
+
   if(loggedInMode === "staff"){
     await loadTemporaryPasswords();
   }
 
   changePage();
-}
-  
-function populateKitCheckDropdown(){
-
- const dropdown = document.getElementById("eventKitList");
-
- if(!dropdown){
-    return;
-}
-
-dropdown.innerHTML = `<option value="">Select Kit List</option>`;
-
-allATKitLists.forEach(list => {
-dropdown.innerHTML += `
- <option value="${list.id}">
-${escapeHtml(list.activity_name)}
-</option>
-`;
-});
 }
 
 function changePage(){
@@ -183,7 +162,7 @@ function changePage(){
   }
 
   document.getElementById(selected).classList.add("active-page");
-/* UNIFORM */
+}/* UNIFORM STOCK */
 
 async function loadUniformStock(){
   const { data, error } = await supabaseClient
@@ -228,7 +207,10 @@ function displayUniformStock(stock){
 }
 
 function searchUniformStock(){
-  const search = document.getElementById("uniformSearchInput").value.toLowerCase();
+  const input = document.getElementById("uniformSearchInput");
+  if(!input) return;
+
+  const search = input.value.toLowerCase();
 
   const filtered = allUniformStock.filter(item =>
     item.item?.toLowerCase().includes(search) ||
@@ -257,8 +239,12 @@ function populateUniformDropdowns(){
 }
 
 function updateUniformIssueSizeDropdown(){
-  const item = document.getElementById("uniformIssueItem").value;
+  const itemDropdown = document.getElementById("uniformIssueItem");
   const sizeDropdown = document.getElementById("uniformIssueSize");
+
+  if(!itemDropdown || !sizeDropdown) return;
+
+  const item = itemDropdown.value;
 
   sizeDropdown.innerHTML = `<option value="">Select Size</option>`;
 
@@ -274,8 +260,12 @@ function updateUniformIssueSizeDropdown(){
 }
 
 function updateUniformRequestSizeDropdown(){
-  const item = document.getElementById("uniformRequestItem").value;
+  const itemDropdown = document.getElementById("uniformRequestItem");
   const sizeDropdown = document.getElementById("uniformRequestSize");
+
+  if(!itemDropdown || !sizeDropdown) return;
+
+  const item = itemDropdown.value;
 
   sizeDropdown.innerHTML = `<option value="">Select Size</option>`;
 
@@ -289,9 +279,14 @@ function updateUniformRequestSizeDropdown(){
 }
 
 function updateUniformBoxInfo(){
-  const item = document.getElementById("uniformIssueItem").value;
-  const size = document.getElementById("uniformIssueSize").value;
+  const itemDropdown = document.getElementById("uniformIssueItem");
+  const sizeDropdown = document.getElementById("uniformIssueSize");
   const box = document.getElementById("uniformSelectedStockInfo");
+
+  if(!itemDropdown || !sizeDropdown || !box) return;
+
+  const item = itemDropdown.value;
+  const size = sizeDropdown.value;
 
   if(!item || !size){
     box.innerHTML = "Select an item and size.";
@@ -307,6 +302,8 @@ function updateUniformBoxInfo(){
     ${matches.map(x => `${escapeHtml(x.box_number || "No box")} - Qty ${x.quantity}`).join("<br>")}
   `;
 }
+
+/* UNIFORM ISSUE / HISTORY / REQUESTS */
 
 async function issueUniform(){
   if(!loggedInMode){
@@ -347,6 +344,7 @@ async function issueUniform(){
       .eq("id", stockLine.id);
 
     if(updateError){
+      console.log(updateError);
       alert("Error updating uniform stock.");
       return;
     }
@@ -375,6 +373,7 @@ async function issueUniform(){
     .insert(issueRecords);
 
   if(insertError){
+    console.log(insertError);
     alert("Stock updated but uniform issue history failed.");
     return;
   }
@@ -411,7 +410,7 @@ function displayUniformIssueHistory(history){
 
   table.innerHTML = "";
 
-  if(history.length === 0){
+  if(!history || history.length === 0){
     table.innerHTML = `<tr><td colspan="7" class="no-data">No uniform issue history found</td></tr>`;
     return;
   }
@@ -432,7 +431,10 @@ function displayUniformIssueHistory(history){
 }
 
 function searchUniformIssueHistory(){
-  const search = document.getElementById("uniformHistorySearchInput").value.toLowerCase();
+  const input = document.getElementById("uniformHistorySearchInput");
+  if(!input) return;
+
+  const search = input.value.toLowerCase();
 
   const filtered = allUniformIssueHistory.filter(r =>
     r.cadet_name?.toLowerCase().includes(search) ||
@@ -500,7 +502,7 @@ function displayUniformRequests(){
 
   table.innerHTML = "";
 
-  if(allUniformRequests.length === 0){
+  if(!allUniformRequests || allUniformRequests.length === 0){
     table.innerHTML = `<tr><td colspan="7" class="no-data">No uniform requests found</td></tr>`;
     return;
   }
@@ -508,11 +510,11 @@ function displayUniformRequests(){
   allUniformRequests.forEach(r => {
     table.innerHTML += `
       <tr>
-        <td>${escapeHtml(r.cadet_name)}</td>
-        <td>${escapeHtml(r.item)}</td>
+        <td>${escapeHtml(r.cadet_name || "")}</td>
+        <td>${escapeHtml(r.item || "")}</td>
         <td>${escapeHtml(r.size || "")}</td>
         <td>${escapeHtml(r.reason || "")}</td>
-        <td>${escapeHtml(r.status)}</td>
+        <td>${escapeHtml(r.status || "")}</td>
         <td>${formatDate(r.requested_at)}</td>
         <td>
           <button class="small-btn approve-btn" onclick="updateUniformRequestStatus(${r.id}, 'Approved')">Approve</button>
@@ -534,9 +536,13 @@ async function updateUniformRequestStatus(id, status){
     .eq("id", id);
 
   if(error){
+    console.log(error);
     alert("Could not update uniform request.");
     return;
   }
+
+  await loadUniformRequests();
+}
 
 /* AT KIT STOCK */
 
@@ -583,7 +589,10 @@ function displayATKit(kit){
 }
 
 function searchATKit(){
-  const search = document.getElementById("atSearchInput").value.toLowerCase();
+  const input = document.getElementById("atSearchInput");
+  if(!input) return;
+
+  const search = input.value.toLowerCase();
 
   const filtered = allATKit.filter(item =>
     item.kit_type?.toLowerCase().includes(search) ||
@@ -665,26 +674,33 @@ function populateATDropdowns(){
 }
 
 function updateATNumberDropdown(){
-  const kitType = document.getElementById("atIssueKitType").value;
+  const kitTypeDropdown = document.getElementById("atIssueKitType");
   const numberDropdown = document.getElementById("atIssueKitNumber");
+
+  if(!kitTypeDropdown || !numberDropdown) return;
+
+  const kitType = kitTypeDropdown.value;
 
   numberDropdown.innerHTML = `<option value="">Select Kit Number</option>`;
 
   const availableKit = allATKit
     .filter(x => x.kit_type === kitType && x.status === "Available")
-    .sort((a,b) => a.kit_number.localeCompare(b.kit_number));
+    .sort((a,b) => String(a.kit_number || "").localeCompare(String(b.kit_number || "")));
 
   availableKit.forEach(item => {
-    numberDropdown.innerHTML += `<option value="${item.id}">${escapeHtml(item.kit_number)}</option>`;
+    numberDropdown.innerHTML += `<option value="${item.id}">${escapeHtml(item.kit_number || "")}</option>`;
   });
 
   updateATKitInfo();
 }
 
 function updateATKitInfo(){
-  const kitId = document.getElementById("atIssueKitNumber").value;
+  const numberDropdown = document.getElementById("atIssueKitNumber");
   const box = document.getElementById("atSelectedKitInfo");
 
+  if(!numberDropdown || !box) return;
+
+  const kitId = numberDropdown.value;
   const item = allATKit.find(x => String(x.id) === String(kitId));
 
   if(!item){
@@ -693,8 +709,8 @@ function updateATKitInfo(){
   }
 
   box.innerHTML = `
-    <strong>Type:</strong> ${escapeHtml(item.kit_type)}<br>
-    <strong>Number:</strong> ${escapeHtml(item.kit_number)}<br>
+    <strong>Type:</strong> ${escapeHtml(item.kit_type || "")}<br>
+    <strong>Number:</strong> ${escapeHtml(item.kit_number || "")}<br>
     <strong>Size:</strong> ${escapeHtml(item.size || "")}<br>
     <strong>Condition:</strong> ${escapeHtml(item.condition || "")}<br>
     <strong>Location:</strong> ${escapeHtml(item.location || "")}
@@ -734,6 +750,7 @@ async function issueATKit(){
     .eq("id", item.id);
 
   if(updateError){
+    console.log(updateError);
     alert("Could not update AT kit status.");
     return;
   }
@@ -751,6 +768,7 @@ async function issueATKit(){
     }]);
 
   if(insertError){
+    console.log(insertError);
     alert("Kit marked as issued but history did not save.");
     return;
   }
@@ -774,16 +792,23 @@ function populateATReturnDropdown(){
 
   allATIssueHistory
     .filter(x => !x.returned)
-    .sort((a,b) => a.kit_number.localeCompare(b.kit_number))
+    .sort((a,b) => String(a.kit_number || "").localeCompare(String(b.kit_number || "")))
     .forEach(issue => {
-      dropdown.innerHTML += `<option value="${issue.id}">${escapeHtml(issue.kit_number)} - ${escapeHtml(issue.cadet_name)}</option>`;
+      dropdown.innerHTML += `
+        <option value="${issue.id}">
+          ${escapeHtml(issue.kit_number || "")} - ${escapeHtml(issue.cadet_name || "")}
+        </option>
+      `;
     });
 }
 
 function updateATReturnInfo(){
-  const issueId = document.getElementById("atReturnKitNumber").value;
+  const dropdown = document.getElementById("atReturnKitNumber");
   const box = document.getElementById("atReturnInfo");
 
+  if(!dropdown || !box) return;
+
+  const issueId = dropdown.value;
   const issue = allATIssueHistory.find(x => String(x.id) === String(issueId));
 
   if(!issue){
@@ -792,9 +817,9 @@ function updateATReturnInfo(){
   }
 
   box.innerHTML = `
-    <strong>Cadet:</strong> ${escapeHtml(issue.cadet_name)}<br>
-    <strong>Type:</strong> ${escapeHtml(issue.kit_type)}<br>
-    <strong>Number:</strong> ${escapeHtml(issue.kit_number)}<br>
+    <strong>Cadet:</strong> ${escapeHtml(issue.cadet_name || "")}<br>
+    <strong>Type:</strong> ${escapeHtml(issue.kit_type || "")}<br>
+    <strong>Number:</strong> ${escapeHtml(issue.kit_number || "")}<br>
     <strong>Issued:</strong> ${formatDate(issue.issue_date)}
   `;
 }
@@ -827,6 +852,7 @@ async function returnATKit(){
     .eq("id", issue.id);
 
   if(updateIssueError){
+    console.log(updateIssueError);
     alert("Could not update issue history.");
     return;
   }
@@ -841,6 +867,7 @@ async function returnATKit(){
     .eq("id", issue.kit_id);
 
   if(updateKitError){
+    console.log(updateKitError);
     alert("Return recorded but kit status did not update.");
     return;
   }
@@ -877,7 +904,7 @@ function displayATIssueHistory(history){
 
   table.innerHTML = "";
 
-  if(history.length === 0){
+  if(!history || history.length === 0){
     table.innerHTML = `<tr><td colspan="7" class="no-data">No AT issue history found</td></tr>`;
     return;
   }
@@ -898,7 +925,10 @@ function displayATIssueHistory(history){
 }
 
 function searchATIssueHistory(){
-  const search = document.getElementById("atHistorySearchInput").value.toLowerCase();
+  const input = document.getElementById("atHistorySearchInput");
+  if(!input) return;
+
+  const search = input.value.toLowerCase();
 
   const filtered = allATIssueHistory.filter(r =>
     r.cadet_name?.toLowerCase().includes(search) ||
@@ -907,8 +937,8 @@ function searchATIssueHistory(){
   );
 
   displayATIssueHistory(filtered);
-}  await loadUniformRequests();
-}}
+}
+
 /* AT KIT LISTS */
 
 async function loadATKitLists(){
@@ -933,12 +963,11 @@ async function loadATKitLists(){
     return;
   }
 
-allATKitLists = lists || [];
-allATKitListItems = items || [];
+  allATKitLists = lists || [];
+  allATKitListItems = items || [];
 
-populateATKitListDropdowns();
-populateKitCheckDropdown();
-
+  populateATKitListDropdowns();
+  populateKitCheckDropdown();
 }
 
 function populateATKitListDropdowns(){
@@ -949,7 +978,11 @@ function populateATKitListDropdowns(){
     staffDropdown.innerHTML = `<option value="">Select Kit List</option>`;
 
     allATKitLists.forEach(list => {
-      staffDropdown.innerHTML += `<option value="${list.id}">${escapeHtml(list.activity_name)}</option>`;
+      staffDropdown.innerHTML += `
+        <option value="${list.id}">
+          ${escapeHtml(list.activity_name || "Unnamed Kit List")}
+        </option>
+      `;
     });
   }
 
@@ -957,7 +990,11 @@ function populateATKitListDropdowns(){
     cadetDropdown.innerHTML = `<option value="">Select Activity</option>`;
 
     allATKitLists.forEach(list => {
-      cadetDropdown.innerHTML += `<option value="${list.id}">${escapeHtml(list.activity_name)}</option>`;
+      cadetDropdown.innerHTML += `
+        <option value="${list.id}">
+          ${escapeHtml(list.activity_name || "Unnamed Kit List")}
+        </option>
+      `;
     });
   }
 }
@@ -1123,7 +1160,7 @@ function loadSelectedKitListItems(){
   items.forEach(item => {
     table.innerHTML += `
       <tr>
-        <td>${escapeHtml(item.kit_type)}</td>
+        <td>${escapeHtml(item.kit_type || "")}</td>
         <td>${item.required ? "Required" : "Optional"}</td>
         <td>
           <button class="small-btn reject-btn" onclick="deleteKitListItem(${item.id})">Delete</button>
@@ -1157,8 +1194,12 @@ async function deleteKitListItem(id){
 /* AT REQUESTS */
 
 function loadATRequestChecklist(){
-  const kitListId = document.getElementById("atRequestActivity").value;
+  const activityDropdown = document.getElementById("atRequestActivity");
   const box = document.getElementById("atChecklistBox");
+
+  if(!activityDropdown || !box) return;
+
+  const kitListId = activityDropdown.value;
 
   if(!kitListId){
     box.innerHTML = "Select an activity to see the kit list.";
@@ -1179,8 +1220,8 @@ function loadATRequestChecklist(){
   items.forEach(item => {
     html += `
       <label class="checkbox-row">
-        <input type="checkbox" class="at-kit-checkbox" value="${escapeHtml(item.kit_type)}">
-        ${escapeHtml(item.kit_type)}
+        <input type="checkbox" class="at-kit-checkbox" value="${escapeHtml(item.kit_type || "")}">
+        ${escapeHtml(item.kit_type || "")}
         ${item.required ? "<span class='required-tag'>Required</span>" : "<span class='optional-tag'>Optional</span>"}
       </label>
     `;
@@ -1264,7 +1305,7 @@ function displayATRequests(){
 
   table.innerHTML = "";
 
-  if(allATRequests.length === 0){
+  if(!allATRequests || allATRequests.length === 0){
     table.innerHTML = `<tr><td colspan="6" class="no-data">No AT requests found</td></tr>`;
     return;
   }
@@ -1280,13 +1321,13 @@ function displayATRequests(){
 
     table.innerHTML += `
       <tr>
-        <td>${escapeHtml(r.cadet_name)}</td>
+        <td>${escapeHtml(r.cadet_name || "")}</td>
         <td>
           <strong>${escapeHtml(r.activity_name || "AT Kit")}</strong><br>
           ${itemsText}
         </td>
         <td>${escapeHtml(r.reason || "")}</td>
-        <td>${escapeHtml(r.status)}</td>
+        <td>${escapeHtml(r.status || "")}</td>
         <td>${formatDate(r.requested_at)}</td>
         <td>
           <button class="small-btn approve-btn" onclick="updateATRequestStatus(${r.id}, 'Approved')">Approve</button>
@@ -1308,6 +1349,7 @@ async function updateATRequestStatus(id, status){
     .eq("id", id);
 
   if(error){
+    console.log(error);
     alert("Could not update AT request.");
     return;
   }
@@ -1342,6 +1384,7 @@ async function createTempPassword(){
     }]);
 
   if(error){
+    console.log(error);
     alert("Could not create temporary password.");
     return;
   }
@@ -1380,7 +1423,7 @@ function displayTemporaryPasswords(){
 
   table.innerHTML = "";
 
-  if(allTempPasswords.length === 0){
+  if(!allTempPasswords || allTempPasswords.length === 0){
     table.innerHTML = `<tr><td colspan="5" class="no-data">No temporary passwords found</td></tr>`;
     return;
   }
@@ -1390,7 +1433,7 @@ function displayTemporaryPasswords(){
 
     table.innerHTML += `
       <tr>
-        <td>${escapeHtml(p.password)}</td>
+        <td>${escapeHtml(p.password || "")}</td>
         <td>${escapeHtml(p.note || "")}</td>
         <td>${formatDate(p.expires_at)} ${expired ? "(Expired)" : ""}</td>
         <td>${p.active ? "Yes" : "No"}</td>
@@ -1414,6 +1457,7 @@ async function disableTempPassword(id){
     .eq("id", id);
 
   if(error){
+    console.log(error);
     alert("Could not disable password.");
     return;
   }
@@ -1437,10 +1481,27 @@ function escapeHtml(value){
     .replaceAll("'","&#039;");
 }
 
-let currentKitCheckEvent = null;
+/* EVENT KIT CHECK */
+
+function populateKitCheckDropdown(){
+  const dropdown = document.getElementById("eventKitList");
+
+  if(!dropdown){
+    return;
+  }
+
+  dropdown.innerHTML = `<option value="">Select Kit List</option>`;
+
+  allATKitLists.forEach(list => {
+    dropdown.innerHTML += `
+      <option value="${list.id}">
+        ${escapeHtml(list.activity_name || list.name || list.event_name || list.kit_list_name || "Unnamed Kit List")}
+      </option>
+    `;
+  });
+}
 
 async function createKitCheckEvent(){
-
   const eventName = document.getElementById("eventName").value.trim();
   const kitListId = document.getElementById("eventKitList").value;
   const eventDate = document.getElementById("eventDate").value;
@@ -1471,7 +1532,6 @@ async function createKitCheckEvent(){
 }
 
 async function addCadetsToEvent(){
-
   if(!currentKitCheckEvent){
     alert("Create an event first.");
     return;
@@ -1529,7 +1589,6 @@ async function addCadetsToEvent(){
 }
 
 async function loadKitCheckTable(){
-
   if(!currentKitCheckEvent){
     return;
   }
@@ -1590,7 +1649,6 @@ async function loadKitCheckTable(){
 }
 
 async function updateKitCheckResult(id, brought){
-
   const { error } = await supabaseClient
     .from("at_kit_check_results")
     .update({
@@ -1603,26 +1661,4 @@ async function updateKitCheckResult(id, brought){
     console.log(error);
     alert("Could not save tick box.");
   }
-}
-
-function populateKitCheckDropdown(){
-
-  const dropdown = document.getElementById("eventKitList");
-
-  if(!dropdown){
-    return;
-  }
-
-  dropdown.innerHTML = `<option value="">Select Kit List</option>`;
-
-  allATKitLists.forEach(list => {
-
-    dropdown.innerHTML += `
-      <option value="${list.id}">
-        ${escapeHtml(list.activity_name || list.name || list.event_name || list.kit_list_name || "Unnamed Kit List")}
-      </option>
-    `;
-
-  });
-
 }
