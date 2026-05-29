@@ -287,6 +287,37 @@
   </section>
 </section>
 
+<section id="kitCheckPage" class="page">
+  <section class="card">
+    <h2>AT Event Kit Check</h2>
+
+    <div class="form-grid">
+      <input id="eventName" placeholder="Event Name e.g. Bronze DofE Practice">
+
+      <select id="eventKitList">
+        <option value="">Select Kit List</option>
+      </select>
+
+      <input id="eventDate" type="date">
+
+      <button class="main-button" onclick="createKitCheckEvent()">Create Event</button>
+    </div>
+
+    <div class="bulk-box">
+      <h3>Add Cadets</h3>
+      <p>Paste one cadet name per line.</p>
+
+      <textarea id="cadetBulkList" placeholder="Smith&#10;Jones&#10;Brown"></textarea>
+
+      <button class="main-button" onclick="addCadetsToEvent()">Add Cadets To Checklist</button>
+    </div>
+
+    <div id="kitCheckTable" class="table-wrapper">
+      <p class="hint">Create an event and add cadets to generate the kit check table.</p>
+    </div>
+  </section>
+</section>
+  
 <section id="tempPasswordPage" class="page">
   <section class="card">
     <h2>Temporary Full Access Passwords</h2>
@@ -372,6 +403,6 @@
 </section>
 </div>
 
-<script src="./script.js?v=50"></script>
+<script src="./script.js?v=60"></script>
 </body>
 </html>
