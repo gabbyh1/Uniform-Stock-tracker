@@ -1,408 +1,924 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1384 Kit System</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<title>Squadron Kit & Uniform Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  margin:0;
+  background:#f4f6f8;
+  color:#222;
+}
+
+header{
+  background:#0b1f3a;
+  color:white;
+  padding:18px;
+  text-align:center;
+}
+
+nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  background:#142f55;
+  padding:10px;
+}
+
+nav button{
+  background:white;
+  color:#142f55;
+  border:none;
+  padding:10px 14px;
+  border-radius:6px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+nav button:hover{
+  background:#dbe7ff;
+}
+
+.page{
+  display:none;
+  padding:20px;
+}
+
+.page.active{
+  display:block;
+}
+
+.card{
+  background:white;
+  padding:16px;
+  margin-bottom:18px;
+  border-radius:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
+input, select, textarea{
+  padding:8px;
+  margin:4px 0;
+  width:100%;
+  box-sizing:border-box;
+}
+
+button{
+  padding:8px 12px;
+  margin:3px;
+  cursor:pointer;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+  margin-top:10px;
+}
+
+th, td{
+  border:1px solid #ccc;
+  padding:8px;
+  text-align:left;
+}
+
+th{
+  background:#e9eef5;
+}
+
+.good{
+  background:#d4edda;
+}
+
+.low{
+  background:#fff3cd;
+}
+
+.danger{
+  background:#f8d7da;
+}
+
+.small-btn{
+  padding:4px 8px;
+}
+
+.modal{
+  display:none;
+  position:fixed;
+  z-index:999;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+}
+
+.modal-content{
+  background:white;
+  margin:5% auto;
+  padding:20px;
+  width:90%;
+  max-width:700px;
+  border-radius:8px;
+  max-height:85vh;
+  overflow:auto;
+}
+
+.checkbox-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:6px 0;
+}
+
+.checkbox-row input{
+  width:auto;
+}
+
+.warning-text{
+  color:#b00020;
+  font-weight:bold;
+}
+</style>
 </head>
 
 <body>
 
-<div id="homeScreen" class="login-screen">
-  <div class="login-box">
-    <h1>1384 Kit System</h1>
-    <p>Select access type</p>
-    <button onclick="openUniformRequest()">Cadet Uniform Request</button>
-    <button onclick="openATRequest()">Cadet AT Kit Request</button>
-    <button onclick="openStaffLogin()">Staff / Temporary Login</button>
-  </div>
-</div>
-
-<div id="staffLoginScreen" class="login-screen" style="display:none;">
-  <div class="login-box">
-    <h1>Staff Login</h1>
-    <input id="staffPasswordInput" type="password" placeholder="Enter password">
-    <button onclick="staffLogin()">Login</button>
-    <button class="secondary-btn" onclick="backHome()">Back</button>
-  </div>
-</div>
-
-<div id="mainContent" class="main-content" style="display:none;">
-
 <header>
-  <h1>1384 Kit System</h1>
-  <p id="loggedInAs"></p>
-  <button onclick="logout()" class="logout-btn">Logout</button>
+  <h1>Squadron Kit & Uniform Tracker</h1>
 </header>
 
-<nav class="page-menu">
-  <label>Select Page</label>
-  <select id="pageSelect" onchange="changePage()"></select>
+<nav>
+  <button onclick="showPage('uniformPage')">Uniform Stock</button>
+  <button onclick="showPage('atStockPage')">AT Kit Stock</button>
+  <button onclick="showPage('eventPage')">Events & Kit Lists</button>
+  <button onclick="showPage('issuePage')">Issue Kit</button>
+  <button onclick="showPage('borrowHistoryPage')">Borrow History</button>
 </nav>
+<section id="uniformPage" class="page active">
 
-<section id="uniformStockPage" class="page active-page">
-  <section class="top-controls">
-    <input id="uniformSearchInput" placeholder="Search uniform item, size or box..." onkeyup="searchUniformStock()">
-    <button onclick="loadUniformStock()">Refresh</button>
-  </section>
-
-  <section class="card">
+  <div class="card">
     <h2>Uniform Stock</h2>
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>Item</th><th>Size</th><th>Box</th><th>Qty</th></tr>
-        </thead>
-        <tbody id="uniformStockTable"></tbody>
-      </table>
-    </div>
-  </section>
-</section>
 
-<section id="uniformIssuePage" class="page">
-  <section class="card">
-    <h2>Issue Uniform</h2>
+    <label>Uniform Item</label>
+    <input id="uniformItem" placeholder="Example: Blue Shirt">
 
-    <div class="form-grid">
-      <input id="uniformIssueCadetName" placeholder="Cadet Name">
+    <label>Size</label>
+    <input id="uniformSize" placeholder="Example: 34 inch / Small / 160">
 
-      <select id="uniformIssueItem" onchange="updateUniformIssueSizeDropdown()">
-        <option value="">Select Item</option>
-      </select>
+    <label>Current Stock</label>
+    <input id="uniformCurrentStock" type="number" min="0">
 
-      <select id="uniformIssueSize" onchange="updateUniformBoxInfo()">
-        <option value="">Select Size</option>
-      </select>
+    <label>Minimum Stock</label>
+    <input id="uniformMinimumStock" type="number" min="0">
 
-      <input id="uniformIssueQty" type="number" value="1" min="1">
-    </div>
+    <button onclick="addUniformStock()">Add Uniform Item</button>
+    <button onclick="clearUniformForm()">Clear</button>
+  </div>
 
-    <div id="uniformSelectedStockInfo" class="selected-stock-info">
-      Select an item and size.
-    </div>
+  <div class="card">
+    <h3>Current Uniform Stock</h3>
 
-    <button class="main-button" onclick="issueUniform()">Issue Uniform</button>
-  </section>
-</section>
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Size</th>
+          <th>Current Stock</th>
+          <th>Minimum Stock</th>
+          <th>Stock Controls</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="uniformStockTable"></tbody>
+    </table>
+  </div>
 
-<section id="uniformHistoryPage" class="page">
-  <section class="card">
-    <h2>Uniform Issue History</h2>
-
-    <section class="top-controls history-controls">
-      <input id="uniformHistorySearchInput" placeholder="Search uniform history..." onkeyup="searchUniformIssueHistory()">
-      <button onclick="loadUniformIssueHistory()">Refresh</button>
-    </section>
-
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>Cadet</th><th>Item</th><th>Size</th><th>Box</th><th>Qty</th><th>Date</th><th>Returned</th></tr>
-        </thead>
-        <tbody id="uniformIssueHistoryTable"></tbody>
-      </table>
-    </div>
-  </section>
-</section>
-
-<section id="uniformRequestsPage" class="page">
-  <section class="card">
-    <h2>Uniform Requests</h2>
-    <button class="main-button" onclick="loadUniformRequests()">Refresh Requests</button>
-
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>Cadet</th><th>Item</th><th>Size</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
-        </thead>
-        <tbody id="uniformRequestsTable"></tbody>
-      </table>
-    </div>
-  </section>
 </section>
 
 <section id="atStockPage" class="page">
-  <section class="top-controls">
-    <input id="atSearchInput" placeholder="Search AT kit type, number, status or location..." onkeyup="searchATKit()">
-    <button onclick="loadATKit()">Refresh</button>
-  </section>
 
-  <section class="card">
+  <div class="card">
     <h2>AT Kit Stock</h2>
 
-    <div class="form-grid">
-      <input id="newATType" placeholder="Kit Type e.g. Helmet">
-      <input id="newATNumber" placeholder="Kit Number e.g. HEL-001">
-      <input id="newATSize" placeholder="Size">
-      <input id="newATLocation" placeholder="Location">
-    </div>
+    <label>Kit Item Type</label>
+    <input id="atKitType" placeholder="Example: Helmet">
 
-    <div class="form-grid">
-      <input id="newATDescription" placeholder="Description">
-      <input id="newATCondition" placeholder="Condition" value="Good">
-      <input id="newATNotes" placeholder="Notes">
-      <button class="main-button" onclick="addATKit()">Add AT Kit</button>
-    </div>
+    <label>Item Number</label>
+    <input id="atItemNumber" placeholder="Example: H001">
 
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>Type</th><th>Number</th><th>Size</th><th>Condition</th><th>Status</th><th>Location</th><th>Notes</th><th>Borrowed</th></tr>
-        </thead>
-        <tbody id="atKitTable"></tbody>
-      </table>
-    </div>
-  </section>
-</section>
+    <label>Size / Notes</label>
+    <input id="atKitSize" placeholder="Example: Medium">
 
-<section id="atIssuePage" class="page">
-  <section class="card">
-    <h2>Issue AT Kit</h2>
-
-    <div class="form-grid">
-      <input id="atIssueCadetName" placeholder="Cadet Name">
-
-      <select id="atIssueKitType" onchange="updateATNumberDropdown()">
-        <option value="">Select Kit Type</option>
-      </select>
-
-      <select id="atIssueKitNumber" onchange="updateATKitInfo()">
-        <option value="">Select Kit Number</option>
-      </select>
-
-      <input id="atIssueNotes" placeholder="Notes">
-    </div>
-
-    <div id="atSelectedKitInfo" class="selected-stock-info">
-      Select an AT kit type and kit number.
-    </div>
-
-    <button class="main-button" onclick="issueATKit()">Issue AT Kit</button>
-  </section>
-</section>
-
-<section id="atReturnPage" class="page">
-  <section class="card">
-    <h2>Return AT Kit</h2>
-
-    <div class="form-grid">
-      <select id="atReturnKitNumber" onchange="updateATReturnInfo()">
-        <option value="">Select Issued Kit Number</option>
-      </select>
-
-      <input id="atReturnCondition" placeholder="Return Condition" value="Good">
-      <input id="atReturnNotes" placeholder="Return Notes">
-    </div>
-
-    <div id="atReturnInfo" class="selected-stock-info">
-      Select issued kit to return.
-    </div>
-
-    <button class="main-button" onclick="returnATKit()">Return AT Kit</button>
-  </section>
-</section>
-
-<section id="atHistoryPage" class="page">
-  <section class="card">
-    <h2>AT Kit Issue History</h2>
-
-    <section class="top-controls history-controls">
-      <input id="atHistorySearchInput" placeholder="Search AT history..." onkeyup="searchATIssueHistory()">
-      <button onclick="loadATIssueHistory()">Refresh</button>
-    </section>
-
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>Cadet</th><th>Type</th><th>Number</th><th>Issued</th><th>Returned</th><th>Return Date</th><th>Condition</th></tr>
-        </thead>
-        <tbody id="atIssueHistoryTable"></tbody>
-      </table>
-    </div>
-  </section>
-</section>
-
-<section id="atRequestsPage" class="page">
-  <section class="card">
-    <h2>AT Kit Requests</h2>
-    <button class="main-button" onclick="loadATRequests()">Refresh Requests</button>
-
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>Cadet</th><th>Activity / Items</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
-        </thead>
-        <tbody id="atRequestsTable"></tbody>
-      </table>
-    </div>
-  </section>
-</section>
-
-<section id="atKitListsPage" class="page">
-  <section class="card">
-    <h2>AT Kit Lists</h2>
-
-    <div class="form-grid">
-      <input id="newKitListName" placeholder="Activity name e.g. DofE Bronze Expedition">
-      <input id="newKitListNotes" placeholder="Notes">
-      <button class="main-button" onclick="createATKitList()">Create Kit List</button>
-    </div>
-
-    <hr>
-
-    <div class="form-grid">
-      <select id="kitListSelect" onchange="loadSelectedKitListItems()">
-        <option value="">Select Kit List</option>
-      </select>
-
-      <input id="newKitListItem" placeholder="Single kit item e.g. Rucksack">
-
-      <select id="newKitListRequired">
-        <option value="true">Required</option>
-        <option value="false">Optional</option>
-      </select>
-
-      <button class="main-button" onclick="addItemToKitList()">Add Single Item</button>
-    </div>
-
-    <div class="bulk-box">
-      <h3>Bulk Add Kit Items</h3>
-      <p>Paste one item per line. The required/optional setting above will be applied to all pasted items.</p>
-
-      <textarea id="bulkKitListItems" placeholder="Rucksack&#10;Sleeping Bag&#10;Roll Mat&#10;Waterproof Jacket&#10;Waterproof Trousers"></textarea>
-
-      <button class="main-button" onclick="bulkAddItemsToKitList()">Bulk Add Items</button>
-    </div>
-
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>Item</th><th>Required?</th><th>Action</th></tr>
-        </thead>
-        <tbody id="kitListItemsTable"></tbody>
-      </table>
-    </div>
-  </section>
-</section>
-
-<section id="kitCheckPage" class="page">
-  <section class="card">
-    <h2>AT Event Kit Check</h2>
-
-    <div class="form-grid">
-      <input id="eventName" placeholder="Event Name e.g. Bronze DofE Practice">
-
-      <select id="eventKitList">
-        <option value="">Select Kit List</option>
-      </select>
-
-      <input id="eventDate" type="date">
-
-      <button class="main-button" onclick="createKitCheckEvent()">Create Event</button>
-    </div>
-
-    <div class="bulk-box">
-      <h3>Add Cadets</h3>
-      <p>Paste one cadet name per line.</p>
-
-      <textarea id="cadetBulkList" placeholder="Smith&#10;Jones&#10;Brown"></textarea>
-
-      <button class="main-button" onclick="addCadetsToEvent()">Add Cadets To Checklist</button>
-    </div>
-
-    <div id="kitCheckTable" class="table-wrapper">
-      <p class="hint">Create an event and add cadets to generate the kit check table.</p>
-    </div>
-  </section>
-</section>
-  
-<section id="tempPasswordPage" class="page">
-  <section class="card">
-    <h2>Temporary Full Access Passwords</h2>
-
-    <div class="form-grid">
-      <input id="tempPassword" placeholder="Temporary password">
-      <input id="tempNote" placeholder="Who is it for?">
-      <input id="tempExpiry" type="datetime-local">
-    </div>
-
-    <button class="main-button" onclick="createTempPassword()">Create Temporary Password</button>
-
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>Password</th><th>Note</th><th>Expires</th><th>Active</th><th>Action</th></tr>
-        </thead>
-        <tbody id="tempPasswordsTable"></tbody>
-      </table>
-    </div>
-  </section>
-</section>
-
-</div>
-
-<div id="uniformRequestPage" class="main-content" style="display:none;">
-<header>
-  <h1>1384 Uniform Request</h1>
-  <p>Use this page to request replacement or new uniform.</p>
-  <button onclick="backHome()" class="logout-btn">Back</button>
-</header>
-
-<section class="card">
-  <h2>Request Uniform</h2>
-
-  <div class="form-grid">
-    <input id="uniformRequestCadetName" placeholder="Your name">
-
-    <select id="uniformRequestItem" onchange="updateUniformRequestSizeDropdown()">
-      <option value="">Select Item</option>
-    </select>
-
-    <select id="uniformRequestSize">
-      <option value="">Select Size</option>
-    </select>
-
-    <input id="uniformRequestReason" placeholder="Reason / notes">
+    <button onclick="addATKitStock()">Add AT Kit Item</button>
+    <button onclick="clearATKitForm()">Clear</button>
   </div>
 
-  <button class="main-button" onclick="submitUniformRequest()">Submit Uniform Request</button>
-  <p class="hint">This page only submits uniform requests.</p>
+  <div class="card">
+    <h3>Current AT Kit Stock</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Kit Type</th>
+          <th>Item Number</th>
+          <th>Size / Notes</th>
+          <th>Status</th>
+          <th>Times Borrowed</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="atKitStockTable"></tbody>
+    </table>
+  </div>
+
 </section>
-</div>
 
-<div id="atRequestPage" class="main-content" style="display:none;">
-<header>
-  <h1>1384 AT Kit Request</h1>
-  <p>Select an activity, then tick the kit you need to borrow.</p>
-  <button onclick="backHome()" class="logout-btn">Back</button>
-</header>
+<section id="eventPage" class="page">
 
-<section class="card">
-  <h2>Request AT Kit</h2>
+  <div class="card">
+    <h2>Create Event Kit List</h2>
 
-  <div class="form-grid">
-    <input id="atRequestCadetName" placeholder="Your name">
+    <label>Event Name</label>
+    <input id="eventName" placeholder="Example: Sector Climbing Competition">
 
-    <select id="atRequestActivity" onchange="loadATRequestChecklist()">
-      <option value="">Select Activity</option>
+    <label>Event Date</label>
+    <input id="eventDate" type="date">
+
+    <label>Cadets Attending</label>
+    <textarea id="eventCadets" rows="5" placeholder="One cadet per line"></textarea>
+
+    <label>Kit Needed</label>
+    <div id="eventKitCheckboxes"></div>
+
+    <button onclick="saveEvent()">Save Event</button>
+    <button onclick="clearEventForm()">Clear Event Form</button>
+  </div>
+
+  <div class="card">
+    <h3>Saved Events</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Date</th>
+          <th>Cadets</th>
+          <th>Kit List</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="eventsTable"></tbody>
+    </table>
+  </div>
+
+</section>
+
+<section id="issuePage" class="page">
+
+  <div class="card">
+    <h2>Issue AT Kit by Event</h2>
+
+    <label>Select Event</label>
+    <select id="issueEventDropdown" onchange="loadEventForIssue()">
+      <option value="">Select Event</option>
     </select>
-
-    <input id="atRequestEventDate" type="date">
-
-    <input id="atRequestReason" placeholder="Event / reason / notes">
   </div>
 
-  <div id="atChecklistBox" class="selected-stock-info">
-    Select an activity to see the kit list.
+  <div class="card">
+    <h3>Cadets Attending Event</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Cadet Name</th>
+          <th>Issue Kit</th>
+        </tr>
+      </thead>
+      <tbody id="eventCadetsIssueTable"></tbody>
+    </table>
   </div>
 
-  <button class="main-button" onclick="submitATRequest()">Submit AT Kit Request</button>
-  <p class="hint">Only tick items you need to borrow.</p>
+  <div class="card">
+    <h3>Kit Being Issued</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Cadet</th>
+          <th>Kit Item</th>
+          <th>Item Number Given</th>
+          <th>Date Issued</th>
+          <th>Return</th>
+        </tr>
+      </thead>
+      <tbody id="issuedKitTable"></tbody>
+    </table>
+  </div>
+
 </section>
+
+<section id="borrowHistoryPage" class="page">
+
+  <div class="card">
+    <h2>Borrow History</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Event</th>
+          <th>Cadet</th>
+          <th>Kit Item</th>
+          <th>Item Number</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="borrowHistoryTable"></tbody>
+    </table>
+  </div>
+
+</section>
+<div id="kitIssueModal" class="modal">
+  <div class="modal-content">
+    <h2 id="kitIssueCadetName">Issue Kit</h2>
+
+    <p>Select everything this cadet needs to borrow.</p>
+
+    <div id="kitIssueChecklist"></div>
+
+    <br>
+
+    <button onclick="confirmKitIssue()">OK</button>
+    <button onclick="closeKitIssueModal()">Cancel</button>
+  </div>
 </div>
 
-<script src="./script.js?v=60"></script>
+<script>
+let uniformStock = [];
+let atKitStock = [];
+let events = [];
+let issuedKit = [];
+let borrowHistory = [];
+
+let selectedIssueEvent = null;
+let selectedIssueCadet = null;
+
+function escapeHtml(text){
+  if(text === null || text === undefined) return "";
+  return String(text)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function saveData(){
+  localStorage.setItem("uniformStock", JSON.stringify(uniformStock));
+  localStorage.setItem("atKitStock", JSON.stringify(atKitStock));
+  localStorage.setItem("events", JSON.stringify(events));
+  localStorage.setItem("issuedKit", JSON.stringify(issuedKit));
+  localStorage.setItem("borrowHistory", JSON.stringify(borrowHistory));
+}
+
+function loadData(){
+  uniformStock = JSON.parse(localStorage.getItem("uniformStock")) || [];
+  atKitStock = JSON.parse(localStorage.getItem("atKitStock")) || [];
+  events = JSON.parse(localStorage.getItem("events")) || [];
+  issuedKit = JSON.parse(localStorage.getItem("issuedKit")) || [];
+  borrowHistory = JSON.parse(localStorage.getItem("borrowHistory")) || [];
+}
+
+function showPage(pageId){
+  document.querySelectorAll(".page").forEach(page => {
+    page.classList.remove("active");
+  });
+
+  document.getElementById(pageId).classList.add("active");
+
+  renderAll();
+}
+function addUniformStock(){
+  const item = document.getElementById("uniformItem").value.trim();
+  const size = document.getElementById("uniformSize").value.trim();
+  const currentStock = Number(document.getElementById("uniformCurrentStock").value);
+  const minimumStock = Number(document.getElementById("uniformMinimumStock").value);
+
+  if(!item || !size){
+    alert("Please enter the uniform item and size.");
+    return;
+  }
+
+  uniformStock.push({
+    id: Date.now(),
+    item,
+    size,
+    currentStock: isNaN(currentStock) ? 0 : currentStock,
+    minimumStock: isNaN(minimumStock) ? 0 : minimumStock
+  });
+
+  saveData();
+  clearUniformForm();
+  renderUniformStockTable();
+}
+
+function clearUniformForm(){
+  document.getElementById("uniformItem").value = "";
+  document.getElementById("uniformSize").value = "";
+  document.getElementById("uniformCurrentStock").value = "";
+  document.getElementById("uniformMinimumStock").value = "";
+}
+
+function renderUniformStockTable(){
+  const table = document.getElementById("uniformStockTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  uniformStock.forEach((item, index) => {
+    let rowClass = "good";
+
+    if(item.currentStock <= 0){
+      rowClass = "danger";
+    } else if(item.currentStock <= item.minimumStock){
+      rowClass = "low";
+    }
+
+    table.innerHTML += `
+      <tr class="${rowClass}">
+        <td>${escapeHtml(item.item)}</td>
+        <td>${escapeHtml(item.size)}</td>
+        <td>${escapeHtml(item.currentStock)}</td>
+        <td>${escapeHtml(item.minimumStock)}</td>
+        <td>
+          <button class="small-btn" onclick="changeUniformStock(${index}, -1)">-1</button>
+          <button class="small-btn" onclick="changeUniformStock(${index}, 1)">+1</button>
+          <button class="small-btn" onclick="setUniformStock(${index})">Set Number</button>
+        </td>
+        <td>
+          <button onclick="deleteUniformStock(${index})">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function changeUniformStock(index, amount){
+  uniformStock[index].currentStock += amount;
+
+  if(uniformStock[index].currentStock < 0){
+    uniformStock[index].currentStock = 0;
+  }
+
+  saveData();
+  renderUniformStockTable();
+}
+
+function setUniformStock(index){
+  const newAmount = prompt("Enter the new stock number:", uniformStock[index].currentStock);
+
+  if(newAmount === null) return;
+
+  const number = Number(newAmount);
+
+  if(isNaN(number) || number < 0){
+    alert("Please enter a valid number.");
+    return;
+  }
+
+  uniformStock[index].currentStock = number;
+  saveData();
+  renderUniformStockTable();
+}
+
+function deleteUniformStock(index){
+  if(!confirm("Delete this uniform item?")) return;
+
+  uniformStock.splice(index, 1);
+  saveData();
+  renderUniformStockTable();
+}
+function addATKitStock(){
+  const type = document.getElementById("atKitType").value.trim();
+  const itemNumber = document.getElementById("atItemNumber").value.trim();
+  const size = document.getElementById("atKitSize").value.trim();
+
+  if(!type || !itemNumber){
+    alert("Please enter kit type and item number.");
+    return;
+  }
+
+  atKitStock.push({
+    id: Date.now(),
+    type,
+    itemNumber,
+    size,
+    status: "Available",
+    borrowCount: 0
+  });
+
+  saveData();
+  clearATKitForm();
+  renderATKitStockTable();
+  renderEventKitCheckboxes();
+}
+
+function clearATKitForm(){
+  document.getElementById("atKitType").value = "";
+  document.getElementById("atItemNumber").value = "";
+  document.getElementById("atKitSize").value = "";
+}
+
+function renderATKitStockTable(){
+  const table = document.getElementById("atKitStockTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  atKitStock.forEach((item, index) => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(item.type)}</td>
+        <td>${escapeHtml(item.itemNumber)}</td>
+        <td>${escapeHtml(item.size)}</td>
+        <td>${escapeHtml(item.status)}</td>
+        <td>${escapeHtml(item.borrowCount || 0)}</td>
+        <td>
+          <button onclick="deleteATKitStock(${index})">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function deleteATKitStock(index){
+  if(!confirm("Delete this AT kit item?")) return;
+
+  atKitStock.splice(index, 1);
+  saveData();
+  renderAll();
+}
+
+function getUniqueATKitTypes(){
+  return [...new Set(atKitStock.map(item => item.type))].sort();
+}
+
+function renderEventKitCheckboxes(){
+  const box = document.getElementById("eventKitCheckboxes");
+  if(!box) return;
+
+  box.innerHTML = "";
+
+  getUniqueATKitTypes().forEach(type => {
+    box.innerHTML += `
+      <label class="checkbox-row">
+        <input type="checkbox" class="eventKitItemCheckbox" value="${escapeHtml(type)}">
+        ${escapeHtml(type)}
+      </label>
+    `;
+  });
+}
+function saveEvent(){
+  const name = document.getElementById("eventName").value.trim();
+  const date = document.getElementById("eventDate").value;
+  const cadetText = document.getElementById("eventCadets").value.trim();
+
+  const cadets = cadetText
+    .split("\n")
+    .map(name => name.trim())
+    .filter(name => name !== "");
+
+  const kitItems = Array.from(document.querySelectorAll(".eventKitItemCheckbox:checked"))
+    .map(box => box.value);
+
+  if(!name){
+    alert("Please enter an event name.");
+    return;
+  }
+
+  events.push({
+    id: Date.now(),
+    name,
+    date,
+    cadets,
+    kitItems
+  });
+
+  saveData();
+  clearEventForm();
+  renderAll();
+}
+
+function clearEventForm(){
+  document.getElementById("eventName").value = "";
+  document.getElementById("eventDate").value = "";
+  document.getElementById("eventCadets").value = "";
+
+  document.querySelectorAll(".eventKitItemCheckbox").forEach(box => {
+    box.checked = false;
+  });
+}
+
+function renderEventsTable(){
+  const table = document.getElementById("eventsTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  events.forEach((event, index) => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(event.name)}</td>
+        <td>${escapeHtml(event.date)}</td>
+        <td>${event.cadets.length}</td>
+        <td>${event.kitItems.map(escapeHtml).join(", ")}</td>
+        <td>
+          <button onclick="deleteEvent(${index})">Delete Event</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function deleteEvent(index){
+  if(!confirm("Delete this event?")) return;
+
+  events.splice(index, 1);
+  saveData();
+  renderAll();
+}
+
+function populateIssueEventDropdown(){
+  const dropdown = document.getElementById("issueEventDropdown");
+  if(!dropdown) return;
+
+  const currentValue = dropdown.value;
+
+  dropdown.innerHTML = `<option value="">Select Event</option>`;
+
+  events.forEach(event => {
+    dropdown.innerHTML += `
+      <option value="${event.id}">
+        ${escapeHtml(event.name)} ${event.date ? "- " + escapeHtml(event.date) : ""}
+      </option>
+    `;
+  });
+
+  dropdown.value = currentValue;
+}
+
+function loadEventForIssue(){
+  const eventId = document.getElementById("issueEventDropdown").value;
+  selectedIssueEvent = events.find(event => String(event.id) === String(eventId));
+
+  renderEventCadetsIssueTable();
+  renderIssuedKitTable();
+}
+
+function renderEventCadetsIssueTable(){
+  const table = document.getElementById("eventCadetsIssueTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  if(!selectedIssueEvent){
+    table.innerHTML = `
+      <tr>
+        <td colspan="2">Select an event first.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  selectedIssueEvent.cadets.forEach(cadet => {
+    table.innerHTML += `
+      <tr>
+        <td>
+          <button onclick="openKitIssueModal('${escapeHtml(cadet)}')">
+            ${escapeHtml(cadet)}
+          </button>
+        </td>
+        <td>Click cadet name to issue multiple items</td>
+      </tr>
+    `;
+  });
+}
+
+function openKitIssueModal(cadetName){
+  selectedIssueCadet = cadetName;
+
+  document.getElementById("kitIssueCadetName").innerText =
+    "Issue kit to " + cadetName;
+
+  const checklist = document.getElementById("kitIssueChecklist");
+  checklist.innerHTML = "";
+
+  if(!selectedIssueEvent || selectedIssueEvent.kitItems.length === 0){
+    checklist.innerHTML = `<p class="warning-text">No kit items were added to this event.</p>`;
+  } else {
+    selectedIssueEvent.kitItems.forEach(item => {
+      checklist.innerHTML += `
+        <label class="checkbox-row">
+          <input type="checkbox" class="issueKitCheckbox" value="${escapeHtml(item)}">
+          ${escapeHtml(item)}
+        </label>
+      `;
+    });
+  }
+
+  document.getElementById("kitIssueModal").style.display = "block";
+}
+
+function closeKitIssueModal(){
+  document.getElementById("kitIssueModal").style.display = "none";
+  selectedIssueCadet = null;
+}
+
+function confirmKitIssue(){
+  const selectedItems = Array.from(document.querySelectorAll(".issueKitCheckbox:checked"))
+    .map(box => box.value);
+
+  if(selectedItems.length === 0){
+    alert("Select at least one kit item.");
+    return;
+  }
+
+  selectedItems.forEach(item => {
+    issuedKit.push({
+      id: Date.now() + Math.random(),
+      eventId: selectedIssueEvent.id,
+      eventName: selectedIssueEvent.name,
+      cadetName: selectedIssueCadet,
+      kitItem: item,
+      itemNumber: "",
+      dateIssued: new Date().toLocaleDateString()
+    });
+  });
+
+  saveData();
+  closeKitIssueModal();
+  renderIssuedKitTable();
+}
+
+function renderIssuedKitTable(){
+  const table = document.getElementById("issuedKitTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  let visibleIssuedKit = issuedKit;
+
+  if(selectedIssueEvent){
+    visibleIssuedKit = issuedKit.filter(entry =>
+      String(entry.eventId) === String(selectedIssueEvent.id)
+    );
+  }
+
+  visibleIssuedKit.forEach(entry => {
+    const realIndex = issuedKit.findIndex(item => item.id === entry.id);
+
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(entry.eventName)}</td>
+        <td>${escapeHtml(entry.cadetName)}</td>
+        <td>${escapeHtml(entry.kitItem)}</td>
+        <td>
+          <select onchange="assignItemNumber(${realIndex}, this.value)">
+            <option value="">Select item number</option>
+            ${getAvailableItemNumberOptions(entry.kitItem, entry.itemNumber)}
+          </select>
+        </td>
+        <td>${escapeHtml(entry.dateIssued)}</td>
+        <td>
+          <button onclick="returnIssuedKit(${realIndex})">Returned</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function getAvailableItemNumberOptions(kitType, selectedNumber){
+  let options = "";
+
+  atKitStock
+    .filter(item => item.type === kitType)
+    .forEach(item => {
+      const alreadyIssued = issuedKit.some(entry =>
+        entry.itemNumber === item.itemNumber &&
+        entry.itemNumber !== selectedNumber
+      );
+
+      if(!alreadyIssued || item.itemNumber === selectedNumber){
+        options += `
+          <option value="${escapeHtml(item.itemNumber)}" ${item.itemNumber === selectedNumber ? "selected" : ""}>
+            ${escapeHtml(item.itemNumber)} ${item.size ? "- " + escapeHtml(item.size) : ""}
+          </option>
+        `;
+      }
+    });
+
+  return options;
+}
+
+function assignItemNumber(index, itemNumber){
+  issuedKit[index].itemNumber = itemNumber;
+
+  atKitStock.forEach(item => {
+    const currentlyIssued = issuedKit.some(entry =>
+      entry.itemNumber === item.itemNumber
+    );
+
+    item.status = currentlyIssued ? "Issued" : "Available";
+  });
+
+  const kitItem = atKitStock.find(item => item.itemNumber === itemNumber);
+
+  if(kitItem){
+    kitItem.borrowCount = Number(kitItem.borrowCount || 0) + 1;
+  }
+
+  borrowHistory.push({
+    date: new Date().toLocaleDateString(),
+    eventName: issuedKit[index].eventName,
+    cadetName: issuedKit[index].cadetName,
+    kitItem: issuedKit[index].kitItem,
+    itemNumber,
+    action: "Issued"
+  });
+
+  saveData();
+  renderAll();
+}
+
+function returnIssuedKit(index){
+  const returned = issuedKit[index];
+
+  if(!confirm("Mark this item as returned?")) return;
+
+  borrowHistory.push({
+    date: new Date().toLocaleDateString(),
+    eventName: returned.eventName,
+    cadetName: returned.cadetName,
+    kitItem: returned.kitItem,
+    itemNumber: returned.itemNumber,
+    action: "Returned"
+  });
+
+  issuedKit.splice(index, 1);
+
+  atKitStock.forEach(item => {
+    const currentlyIssued = issuedKit.some(entry =>
+      entry.itemNumber === item.itemNumber
+    );
+
+    item.status = currentlyIssued ? "Issued" : "Available";
+  });
+
+  saveData();
+  renderAll();
+}
+
+function renderBorrowHistoryTable(){
+  const table = document.getElementById("borrowHistoryTable");
+  if(!table) return;
+
+  table.innerHTML = "";
+
+  borrowHistory.forEach(entry => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(entry.date)}</td>
+        <td>${escapeHtml(entry.eventName)}</td>
+        <td>${escapeHtml(entry.cadetName)}</td>
+        <td>${escapeHtml(entry.kitItem)}</td>
+        <td>${escapeHtml(entry.itemNumber)}</td>
+        <td>${escapeHtml(entry.action)}</td>
+      </tr>
+    `;
+  });
+}
+
+function renderAll(){
+  renderUniformStockTable();
+  renderATKitStockTable();
+  renderEventKitCheckboxes();
+  renderEventsTable();
+  populateIssueEventDropdown();
+  renderEventCadetsIssueTable();
+  renderIssuedKitTable();
+  renderBorrowHistoryTable();
+}
+
+window.onload = function(){
+  loadData();
+  renderAll();
+};
+</script>
+
 </body>
-</html>
+</html>  
