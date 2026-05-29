@@ -232,9 +232,46 @@
     <div class="table-wrapper">
       <table>
         <thead>
-          <tr><th>Cadet</th><th>Kit Type</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
+          <tr><th>Cadet</th><th>Activity / Items</th><th>Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
         </thead>
         <tbody id="atRequestsTable"></tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<section id="atKitListsPage" class="page">
+  <section class="card">
+    <h2>AT Kit Lists</h2>
+
+    <div class="form-grid">
+      <input id="newKitListName" placeholder="Activity name e.g. DofE Bronze Expedition">
+      <input id="newKitListNotes" placeholder="Notes">
+      <button class="main-button" onclick="createATKitList()">Create Kit List</button>
+    </div>
+
+    <hr>
+
+    <div class="form-grid">
+      <select id="kitListSelect" onchange="loadSelectedKitListItems()">
+        <option value="">Select Kit List</option>
+      </select>
+
+      <input id="newKitListItem" placeholder="Kit item e.g. Rucksack">
+      <select id="newKitListRequired">
+        <option value="true">Required</option>
+        <option value="false">Optional</option>
+      </select>
+
+      <button class="main-button" onclick="addItemToKitList()">Add Item</button>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Required?</th><th>Action</th></tr>
+        </thead>
+        <tbody id="kitListItemsTable"></tbody>
       </table>
     </div>
   </section>
@@ -297,7 +334,7 @@
 <div id="atRequestPage" class="main-content" style="display:none;">
 <header>
   <h1>1384 AT Kit Request</h1>
-  <p>Use this page to request adventurous training kit.</p>
+  <p>Select an activity, then tick the kit you need to borrow.</p>
   <button onclick="backHome()" class="logout-btn">Back</button>
 </header>
 
@@ -307,18 +344,24 @@
   <div class="form-grid">
     <input id="atRequestCadetName" placeholder="Your name">
 
-    <select id="atRequestKitType">
-      <option value="">Select Kit Type</option>
+    <select id="atRequestActivity" onchange="loadATRequestChecklist()">
+      <option value="">Select Activity</option>
     </select>
 
-    <input id="atRequestReason" placeholder="Reason / event / notes">
+    <input id="atRequestEventDate" type="date">
+
+    <input id="atRequestReason" placeholder="Event / reason / notes">
+  </div>
+
+  <div id="atChecklistBox" class="selected-stock-info">
+    Select an activity to see the kit list.
   </div>
 
   <button class="main-button" onclick="submitATRequest()">Submit AT Kit Request</button>
-  <p class="hint">This page only submits AT kit requests.</p>
+  <p class="hint">Only tick items you need to borrow.</p>
 </section>
 </div>
 
-<script src="./script.js?v=30"></script>
+<script src="./script.js?v=40"></script>
 </body>
 </html>
