@@ -49,6 +49,7 @@ async function openATRequest(){
   document.getElementById("atRequestPage").style.display = "block";
   await loadATKit();
   await loadATKitLists();
+  populateKitCheckDropdown();
 }
 
 function logout(){
@@ -131,21 +132,45 @@ async function openFullSite(label){
 
   pageSelect.value = "uniformStockPage";
 
-  await loadUniformStock();
-  await loadUniformIssueHistory();
-  await loadUniformRequests();
-  await loadATKit();
-  await loadATIssueHistory();
-  await loadATRequests();
-  await loadATKitLists();
+ await loadUniformStock();
+await loadUniformIssueHistory();
+await loadUniformRequests();
+await loadATKit();
+await loadATIssueHistory();
+await loadATRequests();
+await loadATKitLists();
 
+populateKitCheckDropdown();
+  
   if(loggedInMode === "staff"){
     await loadTemporaryPasswords();
   }
 
   changePage();
 }
+147    changePage();
+148 }
+149
+150 function populateKitCheckDropdown(){
 
+151   const dropdown = document.getElementById("eventKitList");
+
+152   if(!dropdown){
+153     return;
+154   }
+
+155   dropdown.innerHTML = `<option value="">Select Kit List</option>`;
+
+156   allATKitLists.forEach(list => {
+157     dropdown.innerHTML += `
+158       <option value="${list.id}">
+159         ${escapeHtml(list.activity_name)}
+160       </option>
+161     `;
+162   });
+163 }
+
+164 function changePage(){
 function changePage(){
   document.querySelectorAll(".page").forEach(page => {
     page.classList.remove("active-page");
@@ -1581,4 +1606,26 @@ async function updateKitCheckResult(id, brought){
     console.log(error);
     alert("Could not save tick box.");
   }
+}
+
+function populateKitCheckDropdown(){
+
+  const dropdown = document.getElementById("eventKitList");
+
+  if(!dropdown){
+    return;
+  }
+
+  dropdown.innerHTML = `<option value="">Select Kit List</option>`;
+
+  allATKitLists.forEach(list => {
+
+    dropdown.innerHTML += `
+      <option value="${list.id}">
+        ${escapeHtml(list.activity_name)}
+      </option>
+    `;
+
+  });
+
 }
