@@ -44,7 +44,7 @@ async function staffLogin(){
   const passwordBox = document.getElementById("staffPasswordInput");
 
   if(!passwordBox){
-    alert("Password box not found. Check index.html.");
+    alert("Password box not found.");
     return;
   }
 
@@ -68,6 +68,7 @@ async function staffLogin(){
     }
 
     if(data && data.length > 0){
+
       const validPassword = data.find(p => new Date(p.expires_at) > new Date());
 
       if(validPassword){
@@ -76,6 +77,7 @@ async function staffLogin(){
         return;
       }
     }
+
   }catch(err){
     console.log(err);
   }
@@ -84,25 +86,59 @@ async function staffLogin(){
 }
 
 async function openFullSite(label){
+
   hideAllScreens();
 
   document.getElementById("mainContent").style.display = "block";
   document.getElementById("loggedInAs").innerText = `Logged in as: ${label}`;
 
+  const pageSelect = document.getElementById("pageSelect");
+
+  if(loggedInMode === "staff"){
+    pageSelect.innerHTML = `
+      <option value="stockPage">Current Stock</option>
+      <option value="issuePage">Issue Uniform</option>
+      <option value="historyPage">Issue History</option>
+      <option value="requestsPage">Uniform Requests</option>
+      <option value="tempPasswordPage">Temporary Passwords</option>
+    `;
+  } else {
+    pageSelect.innerHTML = `
+      <option value="stockPage">Current Stock</option>
+      <option value="issuePage">Issue Uniform</option>
+      <option value="historyPage">Issue History</option>
+      <option value="requestsPage">Uniform Requests</option>
+    `;
+  }
+
+  pageSelect.value = "stockPage";
+
   await loadStock();
   await loadIssueHistory();
   await loadRequests();
-  await loadTemporaryPasswords();
+
+  if(loggedInMode === "staff"){
+    await loadTemporaryPasswords();
+  }
 
   changePage();
 }
 
 function changePage(){
+
   document.querySelectorAll(".page").forEach(page => {
     page.classList.remove("active-page");
   });
 
   const selected = document.getElementById("pageSelect").value;
+
+  if(loggedInMode !== "staff" && selected === "tempPasswordPage"){
+    alert("Only the staff account can access temporary passwords.");
+    document.getElementById("pageSelect").value = "stockPage";
+    document.getElementById("stockPage").classList.add("active-page");
+    return;
+  }
+
   document.getElementById(selected).classList.add("active-page");
 }
 
@@ -478,6 +514,7 @@ async function updateRequestStatus(id, status){
 /* TEMP PASSWORDS */
 
 async function createTempPassword(){
+
   if(loggedInMode !== "staff"){
     alert("Only the staff account can create temporary passwords.");
     return;
@@ -516,6 +553,11 @@ async function createTempPassword(){
 }
 
 async function loadTemporaryPasswords(){
+
+  if(loggedInMode !== "staff"){
+    return;
+  }
+
   const { data, error } = await supabaseClient
     .from("temporary_passwords")
     .select("*")
@@ -559,6 +601,12 @@ function displayTemporaryPasswords(){
 }
 
 async function disableTempPassword(id){
+
+  if(loggedInMode !== "staff"){
+    alert("Only staff can disable temporary passwords.");
+    return;
+  }
+
   const { error } = await supabaseClient
     .from("temporary_passwords")
     .update({ active:false })
