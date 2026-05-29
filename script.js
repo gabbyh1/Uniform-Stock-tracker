@@ -40,7 +40,15 @@ function logout(){
 }
 
 async function staffLogin(){
-  const enteredPassword = document.getElementById("staffPasswordInput").value.trim();
+
+  const passwordBox = document.getElementById("staffPasswordInput");
+
+  if(!passwordBox){
+    alert("Password box not found. Check index.html.");
+    return;
+  }
+
+  const enteredPassword = passwordBox.value.trim();
 
   if(enteredPassword === STAFF_PASSWORD){
     loggedInMode = "staff";
@@ -48,26 +56,31 @@ async function staffLogin(){
     return;
   }
 
-  const { data, error } = await supabaseClient
-    .from("temporary_passwords")
-    .select("*")
-    .eq("password", enteredPassword)
-    .eq("active", true);
+  try{
+    const { data, error } = await supabaseClient
+      .from("temporary_passwords")
+      .select("*")
+      .eq("password", enteredPassword)
+      .eq("active", true);
 
-  if(error || !data || data.length === 0){
-    alert("Incorrect password");
-    return;
+    if(error){
+      console.log(error);
+    }
+
+    if(data && data.length > 0){
+      const validPassword = data.find(p => new Date(p.expires_at) > new Date());
+
+      if(validPassword){
+        loggedInMode = "temporary";
+        await openFullSite("Temporary Full Access");
+        return;
+      }
+    }
+  }catch(err){
+    console.log(err);
   }
 
-  const validPassword = data.find(p => new Date(p.expires_at) > new Date());
-
-  if(!validPassword){
-    alert("Temporary password has expired");
-    return;
-  }
-
-  loggedInMode = "temporary";
-  await openFullSite("Temporary Full Access");
+  alert("Incorrect password");
 }
 
 async function openFullSite(label){
