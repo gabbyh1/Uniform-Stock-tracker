@@ -1,179 +1,163 @@
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-}
+*{box-sizing:border-box}
 
 body{
-  font-family:Arial,Helvetica,sans-serif;
-  background:#f2f5f8;
+  font-family:Arial, Helvetica, sans-serif;
+  margin:0;
+  background:#f4f6f8;
   color:#222;
 }
 
-header{
-  background:#0d2340;
-  color:white;
-  padding:15px 20px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-header h1{
-  margin:0;
-  font-size:24px;
-}
-
-header p{
-  margin-top:5px;
-  opacity:0.8;
-}
-
 .login-screen{
-  height:100vh;
+  min-height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
+  background:linear-gradient(135deg,#002147,#0056a6);
+  padding:20px;
 }
 
 .login-box{
   background:white;
-  padding:30px;
-  border-radius:10px;
-  width:400px;
-  box-shadow:0 3px 12px rgba(0,0,0,0.15);
+  padding:35px;
+  border-radius:20px;
+  width:100%;
+  max-width:390px;
   text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
 }
 
 .login-box h1{
-  margin-bottom:15px;
+  color:#002147;
+  margin-top:0;
 }
 
 .login-box p{
-  margin-bottom:20px;
+  color:#555;
 }
 
-.hidden{
-  display:none !important;
+.login-box input{
+  width:100%;
+  padding:14px;
+  margin-top:14px;
+  border:1px solid #ccc;
+  border-radius:10px;
+  font-size:16px;
 }
 
-.app{
-  min-height:100vh;
-}
-
-.page-menu{
-  background:#132d52;
-  padding:10px;
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-}
-
-.page-menu button{
-  background:white;
-  color:#132d52;
+.login-box button,
+.main-button,
+.top-controls button{
+  padding:14px;
+  background:#002147;
+  color:white;
   border:none;
-  padding:10px 14px;
-  border-radius:6px;
+  border-radius:10px;
   cursor:pointer;
   font-weight:bold;
 }
 
-.page-menu button:hover{
-  background:#dde8ff;
+.login-box button{
+  width:100%;
+  margin-top:14px;
+  font-size:16px;
 }
 
-.staff-page{
+.secondary-btn{
+  background:#666 !important;
+}
+
+.main-content{
+  min-height:100vh;
+}
+
+header{
+  background:#002147;
+  color:white;
+  padding:22px;
+  position:relative;
+}
+
+header h1{
+  margin:0;
+}
+
+header p{
+  margin:6px 0 0 0;
+}
+
+.logout-btn{
+  position:absolute;
+  right:20px;
+  top:20px;
+  background:#d60000;
+  color:white;
+  border:none;
+  padding:10px 14px;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.page-menu{
+  background:white;
+  padding:15px 20px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+.page-menu label{
+  font-weight:bold;
+  color:#002147;
+}
+
+.page-menu select{
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  min-width:220px;
+}
+
+.page{
   display:none;
-  padding:20px;
 }
 
 .active-page{
   display:block;
 }
 
-.card{
-  background:white;
-  padding:20px;
-  border-radius:10px;
-  margin-bottom:20px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-.card h2{
-  margin-bottom:15px;
-}
-
-.card h3{
-  margin-top:20px;
-  margin-bottom:10px;
-}
-
-.form-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:10px;
-  margin-bottom:15px;
-}
-
-input,
-select,
-textarea{
-  width:100%;
-  padding:10px;
-  border:1px solid #ccc;
-  border-radius:6px;
-}
-
-textarea{
-  resize:vertical;
-}
-
-button{
-  cursor:pointer;
-}
-
-.main-button{
-  background:#0d2340;
-  color:white;
-  border:none;
-  padding:10px 16px;
-  border-radius:6px;
-}
-
-.main-button:hover{
-  background:#17345f;
-}
-
-.secondary-btn{
-  background:#d9d9d9;
-  border:none;
-  padding:10px 16px;
-  border-radius:6px;
-}
-
-.logout-btn{
-  background:#c62828;
-  color:white;
-  border:none;
-  padding:10px 16px;
-  border-radius:6px;
-}
-
-.logout-btn:hover{
-  background:#a51f1f;
-}
-
 .top-controls{
   display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-bottom:15px;
+  gap:12px;
+  padding:20px;
+  background:white;
+}
+
+.history-controls{
+  padding:0 0 15px 0;
 }
 
 .top-controls input{
   flex:1;
-  min-width:250px;
+  padding:15px;
+  border-radius:12px;
+  border:1px solid #ccc;
+}
+
+.card{
+  background:white;
+  margin:20px;
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 3px 10px rgba(0,0,0,.08);
+}
+
+.card h2{
+  color:#002147;
+  margin-top:0;
 }
 
 .table-wrapper{
@@ -186,9 +170,9 @@ table{
 }
 
 th{
-  background:#0d2340;
+  background:#002147;
   color:white;
-  padding:10px;
+  padding:12px;
   text-align:left;
 }
 
@@ -197,73 +181,94 @@ td{
   border-bottom:1px solid #ddd;
 }
 
-tr:nth-child(even){
-  background:#f8f9fb;
+tr:hover{
+  background:#f1f5f9;
 }
 
-.info-box{
-  background:#eef4ff;
-  border-left:4px solid #0d2340;
-  padding:10px;
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
   margin-bottom:15px;
 }
 
-.modal{
-  position:fixed;
-  left:0;
-  top:0;
+.form-grid input,
+.form-grid select{
   width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.6);
-  z-index:9999;
+  padding:12px;
+  border-radius:8px;
+  border:1px solid #ccc;
 }
 
-.modal-content{
-  background:white;
-  width:90%;
-  max-width:700px;
-  margin:40px auto;
-  padding:20px;
-  border-radius:10px;
-  max-height:85vh;
-  overflow-y:auto;
+.selected-stock-info{
+  background:#f1f5f9;
+  border-left:5px solid #002147;
+  padding:12px;
+  margin-bottom:15px;
+  border-radius:8px;
 }
 
-#modalKitChecklist label{
-  display:block;
-  margin-bottom:8px;
+.main-button{
+  width:100%;
+  margin:10px 0;
 }
 
 .low-stock{
-  background:#fff8d6 !important;
+  color:#d60000;
+  font-weight:bold;
 }
 
-.out-stock{
-  background:#ffdcdc !important;
+.no-data{
+  text-align:center;
+  color:#777;
+  padding:20px;
 }
 
-.good-stock{
-  background:#e7ffe7 !important;
+.hint{
+  color:#666;
+  font-size:13px;
 }
 
-@media(max-width:768px){
+.small-btn{
+  padding:8px 10px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  margin:2px;
+}
 
-  header{
-    flex-direction:column;
-    gap:10px;
-    text-align:center;
+.approve-btn{
+  background:#0a7d24;
+  color:white;
+}
+
+.reject-btn,
+.disable-btn{
+  background:#d60000;
+  color:white;
+}
+
+@media(max-width:800px){
+  .form-grid{
+    grid-template-columns:1fr;
   }
 
+  .top-controls,
   .page-menu{
     flex-direction:column;
+    align-items:stretch;
   }
 
-  .page-menu button{
-    width:100%;
+  header h1{
+    font-size:22px;
   }
 
-  .login-box{
-    width:95%;
+  .logout-btn{
+    position:static;
+    margin-top:12px;
   }
 
+  th,td{
+    font-size:13px;
+  }
 }
