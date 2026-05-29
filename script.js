@@ -111,6 +111,7 @@ async function openFullSite(label){
       <option value="atHistoryPage">AT Kit - Issue History</option>
       <option value="atRequestsPage">AT Kit - Requests</option>
       <option value="atKitListsPage">AT Kit - Kit Lists</option>
+      <option value="kitCheckPage">AT Kit - Event Kit Check</option>
       <option value="tempPasswordPage">Temporary Passwords</option>
     `;
   } else {
@@ -123,6 +124,7 @@ async function openFullSite(label){
       <option value="atIssuePage">AT Kit - Issue Kit</option>
       <option value="atReturnPage">AT Kit - Return Kit</option>
       <option value="atHistoryPage">AT Kit - Issue History</option>
+      <option value="kitCheckPage">AT Kit - Event Kit Check</option>
       <option value="atRequestsPage">AT Kit - Requests</option>
     `;
   }
@@ -909,10 +911,12 @@ async function loadATKitLists(){
     return;
   }
 
-  allATKitLists = lists || [];
-  allATKitListItems = items || [];
+allATKitLists = lists || [];
+allATKitListItems = items || [];
 
-  populateATKitListDropdowns();
+populateATKitListDropdowns();
+populateKitCheckDropdown();
+
 }
 
 function populateATKitListDropdowns(){
@@ -1409,4 +1413,172 @@ function escapeHtml(value){
     .replaceAll(">","&gt;")
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
+}
+
+let currentKitCheckEvent = null;
+
+async function createKitCheckEvent(){
+
+  const eventName = document.getElementById("eventName").value.trim();
+  const kitListId = document.getElementById("eventKitList").value;
+  const eventDate = document.getElementById("eventDate").value;
+
+  if(!eventName || !kitListId){
+    alert("Complete event name and kit list.");
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("at_kit_check_events")
+    .insert([{
+      event_name: eventName,
+      kit_list_id: kitListId,
+      event_date: eventDate || null
+    }])
+    .select();
+
+  if(error){
+    console.log(error);
+    alert("Could not create event.");
+    return;
+  }
+
+  currentKitCheckEvent = data[0];
+
+  alert("Event created. Now add cadets.");
+}
+
+async function addCadetsToEvent(){
+
+  if(!currentKitCheckEvent){
+    alert("Create an event first.");
+    return;
+  }
+
+  const text = document.getElementById("cadetBulkList").value;
+
+  const cadets = text
+    .split(/\r?\n/)
+    .map(name => name.trim())
+    .filter(name => name.length > 0);
+
+  if(cadets.length === 0){
+    alert("Enter at least one cadet.");
+    return;
+  }
+
+  const kitItems = allATKitListItems.filter(
+    item => String(item.kit_list_id) === String(currentKitCheckEvent.kit_list_id)
+  );
+
+  if(kitItems.length === 0){
+    alert("This kit list has no items.");
+    return;
+  }
+
+  let rows = [];
+
+  cadets.forEach(cadet => {
+    kitItems.forEach(item => {
+      rows.push({
+        event_id: currentKitCheckEvent.id,
+        cadet_name: cadet,
+        kit_item: item.kit_type,
+        brought: false
+      });
+    });
+  });
+
+  const { error } = await supabaseClient
+    .from("at_kit_check_results")
+    .insert(rows);
+
+  if(error){
+    console.log(error);
+    alert("Could not create checklist.");
+    return;
+  }
+
+  alert("Checklist created.");
+
+  document.getElementById("cadetBulkList").value = "";
+
+  await loadKitCheckTable();
+}
+
+async function loadKitCheckTable(){
+
+  if(!currentKitCheckEvent){
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("at_kit_check_results")
+    .select("*")
+    .eq("event_id", currentKitCheckEvent.id)
+    .order("cadet_name");
+
+  if(error){
+    console.log(error);
+    alert("Could not load checklist.");
+    return;
+  }
+
+  const results = data || [];
+
+  const cadets = [...new Set(results.map(r => r.cadet_name))];
+  const items = [...new Set(results.map(r => r.kit_item))];
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Cadet</th>
+          ${items.map(item => `<th>${escapeHtml(item)}</th>`).join("")}
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  cadets.forEach(cadet => {
+    html += `<tr><td><strong>${escapeHtml(cadet)}</strong></td>`;
+
+    items.forEach(item => {
+      const record = results.find(r => r.cadet_name === cadet && r.kit_item === item);
+
+      html += `
+        <td>
+          <input 
+            type="checkbox" 
+            ${record?.brought ? "checked" : ""} 
+            onchange="updateKitCheckResult(${record.id}, this.checked)">
+        </td>
+      `;
+    });
+
+    html += `</tr>`;
+  });
+
+  html += `
+      </tbody>
+    </table>
+  `;
+
+  document.getElementById("kitCheckTable").innerHTML = html;
+}
+
+async function updateKitCheckResult(id, brought){
+
+  const { error } = await supabaseClient
+    .from("at_kit_check_results")
+    .update({
+      brought: brought,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", id);
+
+  if(error){
+    console.log(error);
+    alert("Could not save tick box.");
+  }
 }
