@@ -143,6 +143,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
     <button onclick="showStaffPage('atStockPage')">AT Kit Stock</button>
     <button onclick="showStaffPage('atIssuePage')">Issue AT Kit</button>
     <button onclick="showStaffPage('kitListPage')">Kit List Creator</button>
+    <button onclick="showStaffPage('serialRulesPage')">AT Serial Numbers</button>
     <button onclick="showStaffPage('eventIssuePage')">Event Issue Sheet</button>
     <button onclick="showStaffPage('kitCheckerPage')">Kit Checker</button>
     <button onclick="showStaffPage('serviceabilityPage')">Serviceability</button>
@@ -167,11 +168,36 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
         <button class="primary" onclick="addUniformStock()">Add Uniform Stock</button>
         <hr>
-        <h3>Bulk Update Uniform Stock</h3>
-        <p class="small-help">Paste one item per line: <b>Item, Size, Box, Quantity, Low Stock Level</b></p>
-        <textarea id="uniformBulkText" rows="7" placeholder="GELTEX, 160/88, Box 1, 10, 1&#10;Male D.Blue Shirt, 41/43, Box 8, 4, 1"></textarea>
-        <button onclick="bulkUpdateUniformStock()">Add / Update Bulk Uniform Stock</button>
-        <button class="danger" onclick="bulkReplaceUniformStock()">Replace ALL Uniform Stock With Bulk List</button>
+        <h3>Bulk Add / Update Uniform Stock</h3>
+        <p class="small-help">Select an item, select a box number, enter a quantity, then add it to the bulk table. Press save when ready.</p>
+
+        <div class="form-grid">
+          <select id="uniformBulkItem">
+            <option value="">Select uniform item</option>
+          </select>
+          <select id="uniformBulkBox">
+            <option value="">Select box number</option>
+          </select>
+          <input id="uniformBulkQty" type="number" min="1" value="1" placeholder="Quantity to add">
+        </div>
+
+        <button onclick="addUniformBulkRow()">Add Row to Bulk Table</button>
+        <button class="primary" onclick="saveUniformBulkTable()">Save Bulk Uniform Update</button>
+        <button class="danger" onclick="clearUniformBulkTable()">Clear Bulk Table</button>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Box</th>
+                <th>Quantity to Add</th>
+                <th>Remove</th>
+              </tr>
+            </thead>
+            <tbody id="uniformBulkTable"></tbody>
+          </table>
+        </div>
 
         <div class="table-wrap">
           <table>
@@ -236,11 +262,38 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         </div>
         <button class="primary" onclick="addATKit()">Add AT Kit</button>
         <hr>
-        <h3>Bulk Update AT Kit</h3>
-        <p class="small-help">Paste one item per line: <b>Type, Number, Size, Location, Condition, Notes, Status</b></p>
-        <textarea id="atBulkText" rows="7" placeholder="Helmet, H001, Medium, AT Store, Good, , Available&#10;Harness, HA001, Small, AT Store, Good, , Available"></textarea>
-        <button onclick="bulkUpdateATKit()">Add / Update Bulk AT Kit</button>
-        <button class="danger" onclick="bulkReplaceATKit()">Replace ALL AT Kit With Bulk List</button>
+        <h3>Bulk Add AT Kit</h3>
+        <p class="small-help">Select a kit type and the system will auto-assign the next identifying number using the AT Serial Numbers page.</p>
+
+        <div class="form-grid">
+          <select id="atBulkType" onchange="showNextATSerialPreview()">
+            <option value="">Select AT kit item</option>
+          </select>
+          <input id="atBulkSize" placeholder="Size if required">
+          <input id="atBulkNotes" placeholder="Notes">
+          <input id="atBulkQuantity" type="number" min="1" value="1" placeholder="Quantity to add">
+        </div>
+
+        <div id="atSerialPreview" class="info-box">Select a kit item to preview the next identifying number.</div>
+
+        <button onclick="addATBulkRows()">Add to Bulk Table</button>
+        <button class="primary" onclick="saveATBulkTable()">Save Bulk AT Kit</button>
+        <button class="danger" onclick="clearATBulkTable()">Clear Bulk Table</button>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Identifying Number</th>
+                <th>Size</th>
+                <th>Notes</th>
+                <th>Remove</th>
+              </tr>
+            </thead>
+            <tbody id="atBulkTable"></tbody>
+          </table>
+        </div>
 
         <div class="table-wrap">
           <table>
@@ -292,6 +345,39 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <table>
             <thead><tr><th>Kit List</th><th>Item</th><th>Required</th><th>Delete</th></tr></thead>
             <tbody id="kitListItemsTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="serialRulesPage" class="staff-page">
+      <div class="card">
+        <h2>AT Serial Number Rules</h2>
+        <p class="small-help">Use this page to decide what identifying number format applies to each AT kit item. Example: Helmet uses prefix <b>H</b>, next number <b>1</b>, and padding <b>3</b>, giving H001.</p>
+
+        <div class="form-grid">
+          <input id="serialKitType" placeholder="AT kit item type e.g. Helmet">
+          <input id="serialPrefix" placeholder="Prefix e.g. H">
+          <input id="serialNextNumber" type="number" min="1" value="1" placeholder="Next number">
+          <input id="serialPadding" type="number" min="1" value="3" placeholder="Number padding e.g. 3">
+        </div>
+
+        <button class="primary" onclick="saveSerialRule()">Save / Update Serial Rule</button>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>AT Kit Item</th>
+                <th>Prefix</th>
+                <th>Next Number</th>
+                <th>Padding</th>
+                <th>Next Example</th>
+                <th>Delete</th>
+              </tr>
+            </thead>
+            <tbody id="serialRulesTable"></tbody>
           </table>
         </div>
       </div>
@@ -457,6 +543,9 @@ let kitLists = [];
 let kitListItems = [];
 let serviceChecks = [];
 let tempPasswords = [];
+let serialRules = JSON.parse(localStorage.getItem("serialRules") || "[]");
+let uniformBulkRows = [];
+let atBulkRows = [];
 let eventCadets = JSON.parse(localStorage.getItem("eventCadets") || "{}");
 let pendingEventIssues = JSON.parse(localStorage.getItem("pendingEventIssues") || "[]");
 let selectedCheckerEvent = "";
@@ -504,12 +593,13 @@ async function openStaffApp(label){
 function showStaffPage(id){
   document.querySelectorAll(".staff-page").forEach(page => page.classList.remove("active"));
   document.getElementById(id)?.classList.add("active");
-  if(id === "uniformStockPage") renderUniformStock();
+  if(id === "uniformStockPage"){ renderUniformStock(); populateUniformBulkDropdowns(); renderUniformBulkTable(); }
   if(id === "uniformIssuedPage"){ populateUniformIssueDropdowns(); renderUniformIssues(); }
   if(id === "uniformRequestsPage") renderUniformRequests();
-  if(id === "atStockPage") renderATKit();
+  if(id === "atStockPage"){ renderATKit(); populateATBulkTypeDropdown(); renderATBulkTable(); showNextATSerialPreview(); }
   if(id === "atIssuePage"){ populateATIssueDropdowns(); renderATIssues(); }
   if(id === "kitListPage"){ populateKitListDropdowns(); renderKitListItems(); }
+  if(id === "serialRulesPage"){ renderSerialRules(); populateATBulkTypeDropdown(); }
   if(id === "eventIssuePage"){ populateEventIssueFilter(); renderEventIssueSheet(); }
   if(id === "kitCheckerPage"){ populateCheckerEvents(); loadCheckerEvent(); }
   if(id === "serviceabilityPage"){ populateServiceKitDropdown(); renderServiceability(); }
@@ -519,7 +609,7 @@ function showStaffPage(id){
 async function loadAll(){
   await loadUniformStock(); await loadUniformIssues(); await loadUniformRequests();
   await loadATKit(); await loadATIssues(); await loadATRequests();
-  await loadKitLists(); await loadServiceChecks(); await loadTempPasswords(false);
+  await loadKitLists(); await loadServiceChecks(); await loadTempPasswords(false); populateUniformBulkDropdowns(); populateATBulkTypeDropdown();
 }
 async function loadUniformStock(){
   if(!supabaseClient) return;
@@ -1160,6 +1250,348 @@ function parseCsvLine(line){
 
   result.push(current.trim());
   return result;
+}
+
+
+
+function saveSerialRules(){
+  localStorage.setItem("serialRules", JSON.stringify(serialRules));
+}
+
+function saveSerialRule(){
+  const kitType = document.getElementById("serialKitType").value.trim();
+  const prefix = document.getElementById("serialPrefix").value.trim();
+  const nextNumber = Number(document.getElementById("serialNextNumber").value || 1);
+  const padding = Number(document.getElementById("serialPadding").value || 3);
+
+  if(!kitType || !prefix){
+    alert("Enter the AT kit item type and prefix.");
+    return;
+  }
+
+  const existing = serialRules.find(rule => rule.kitType.toLowerCase() === kitType.toLowerCase());
+
+  if(existing){
+    existing.kitType = kitType;
+    existing.prefix = prefix;
+    existing.nextNumber = isNaN(nextNumber) || nextNumber < 1 ? 1 : nextNumber;
+    existing.padding = isNaN(padding) || padding < 1 ? 3 : padding;
+  }else{
+    serialRules.push({
+      kitType,
+      prefix,
+      nextNumber:isNaN(nextNumber) || nextNumber < 1 ? 1 : nextNumber,
+      padding:isNaN(padding) || padding < 1 ? 3 : padding
+    });
+  }
+
+  saveSerialRules();
+
+  document.getElementById("serialKitType").value = "";
+  document.getElementById("serialPrefix").value = "";
+  document.getElementById("serialNextNumber").value = "1";
+  document.getElementById("serialPadding").value = "3";
+
+  renderSerialRules();
+  populateATBulkTypeDropdown();
+  showNextATSerialPreview();
+}
+
+function renderSerialRules(){
+  const table = document.getElementById("serialRulesTable");
+  if(!table) return;
+
+  table.innerHTML = serialRules.length ? "" : `<tr><td colspan="6" class="no-data">No serial number rules created yet.</td></tr>`;
+
+  serialRules
+    .slice()
+    .sort((a,b) => a.kitType.localeCompare(b.kitType))
+    .forEach(rule => {
+      table.innerHTML += `
+        <tr>
+          <td>${escapeHtml(rule.kitType)}</td>
+          <td>${escapeHtml(rule.prefix)}</td>
+          <td>${escapeHtml(rule.nextNumber)}</td>
+          <td>${escapeHtml(rule.padding)}</td>
+          <td>${escapeHtml(formatSerial(rule))}</td>
+          <td><button class="danger" onclick="deleteSerialRule('${escapeHtml(rule.kitType)}')">Delete</button></td>
+        </tr>
+      `;
+    });
+}
+
+function deleteSerialRule(kitType){
+  if(!confirm("Delete this serial number rule?")) return;
+  serialRules = serialRules.filter(rule => rule.kitType !== kitType);
+  saveSerialRules();
+  renderSerialRules();
+  populateATBulkTypeDropdown();
+  showNextATSerialPreview();
+}
+
+function formatSerial(rule, offset=0){
+  const number = Number(rule.nextNumber || 1) + offset;
+  const padding = Number(rule.padding || 3);
+  return `${rule.prefix}${String(number).padStart(padding, "0")}`;
+}
+
+function populateUniformBulkDropdowns(){
+  const itemSelect = document.getElementById("uniformBulkItem");
+  const boxSelect = document.getElementById("uniformBulkBox");
+  if(!itemSelect || !boxSelect) return;
+
+  const currentItem = itemSelect.value;
+  const currentBox = boxSelect.value;
+
+  itemSelect.innerHTML = `<option value="">Select uniform item</option>`;
+  boxSelect.innerHTML = `<option value="">Select box number</option>`;
+
+  const items = [...new Set(uniformStock.map(row => row.item).filter(Boolean))].sort();
+  const boxes = [...new Set(uniformStock.map(row => row.box_number).filter(Boolean))].sort((a,b) => String(a).localeCompare(String(b), undefined, {numeric:true}));
+
+  items.forEach(item => itemSelect.innerHTML += `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`);
+  boxes.forEach(box => boxSelect.innerHTML += `<option value="${escapeHtml(box)}">${escapeHtml(box)}</option>`);
+
+  if(currentItem) itemSelect.value = currentItem;
+  if(currentBox) boxSelect.value = currentBox;
+}
+
+function addUniformBulkRow(){
+  const item = document.getElementById("uniformBulkItem").value;
+  const box = document.getElementById("uniformBulkBox").value;
+  const quantity = Number(document.getElementById("uniformBulkQty").value || 1);
+
+  if(!item || !box || quantity < 1){
+    alert("Select an item, select a box, and enter a quantity.");
+    return;
+  }
+
+  uniformBulkRows.push({id:Date.now()+Math.random(), item, box, quantity});
+  document.getElementById("uniformBulkQty").value = "1";
+  renderUniformBulkTable();
+}
+
+function renderUniformBulkTable(){
+  const table = document.getElementById("uniformBulkTable");
+  if(!table) return;
+
+  table.innerHTML = uniformBulkRows.length ? "" : `<tr><td colspan="4" class="no-data">No uniform bulk rows added yet.</td></tr>`;
+
+  uniformBulkRows.forEach(row => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(row.item)}</td>
+        <td>${escapeHtml(row.box)}</td>
+        <td>${escapeHtml(row.quantity)}</td>
+        <td><button class="danger" onclick="removeUniformBulkRow('${row.id}')">Remove</button></td>
+      </tr>
+    `;
+  });
+}
+
+function removeUniformBulkRow(id){
+  uniformBulkRows = uniformBulkRows.filter(row => String(row.id) !== String(id));
+  renderUniformBulkTable();
+}
+
+function clearUniformBulkTable(){
+  uniformBulkRows = [];
+  renderUniformBulkTable();
+}
+
+async function saveUniformBulkTable(){
+  if(!uniformBulkRows.length){
+    alert("Add rows to the bulk table first.");
+    return;
+  }
+
+  let updated = 0;
+  let skipped = 0;
+
+  for(const row of uniformBulkRows){
+    const matches = uniformStock.filter(stock =>
+      String(stock.item || "") === String(row.item) &&
+      String(stock.box_number || "") === String(row.box)
+    );
+
+    if(!matches.length){
+      skipped++;
+      continue;
+    }
+
+    // If several sizes exist in the same box for the same item, use the first match.
+    const stock = matches[0];
+    const newQty = Number(stock.quantity || 0) + Number(row.quantity || 0);
+
+    const {error} = await supabaseClient.from("uniform_stock").update({
+      quantity:newQty,
+      updated_at:todayISO()
+    }).eq("id", stock.id);
+
+    if(error){
+      console.error(error);
+      alert("Bulk uniform save failed on: " + row.item + " / " + row.box);
+      return;
+    }
+
+    updated++;
+  }
+
+  uniformBulkRows = [];
+  await loadUniformStock();
+  renderUniformBulkTable();
+
+  alert(`Bulk uniform update complete. Updated: ${updated}. Skipped: ${skipped}.`);
+}
+
+function populateATBulkTypeDropdown(){
+  const select = document.getElementById("atBulkType");
+  if(!select) return;
+
+  const current = select.value;
+  select.innerHTML = `<option value="">Select AT kit item</option>`;
+
+  serialRules
+    .slice()
+    .sort((a,b) => a.kitType.localeCompare(b.kitType))
+    .forEach(rule => {
+      select.innerHTML += `<option value="${escapeHtml(rule.kitType)}">${escapeHtml(rule.kitType)}</option>`;
+    });
+
+  if(current) select.value = current;
+}
+
+function showNextATSerialPreview(){
+  const type = document.getElementById("atBulkType")?.value || "";
+  const box = document.getElementById("atSerialPreview");
+  if(!box) return;
+
+  if(!type){
+    box.innerHTML = "Select a kit item to preview the next identifying number.";
+    return;
+  }
+
+  const rule = serialRules.find(rule => rule.kitType === type);
+  if(!rule){
+    box.innerHTML = "No serial rule found for this item. Create one on the AT Serial Numbers page first.";
+    return;
+  }
+
+  const qty = Number(document.getElementById("atBulkQuantity")?.value || 1);
+  const preview = [];
+  for(let i=0; i<Math.min(qty, 10); i++){
+    preview.push(formatSerial(rule, i));
+  }
+
+  box.innerHTML = `<strong>Next identifying number:</strong> ${escapeHtml(formatSerial(rule))}<br><strong>Preview:</strong> ${escapeHtml(preview.join(", "))}${qty > 10 ? " ..." : ""}`;
+}
+
+function addATBulkRows(){
+  const type = document.getElementById("atBulkType").value;
+  const size = document.getElementById("atBulkSize").value.trim();
+  const notes = document.getElementById("atBulkNotes").value.trim();
+  const quantity = Number(document.getElementById("atBulkQuantity").value || 1);
+
+  if(!type || quantity < 1){
+    alert("Select a kit item and enter a quantity.");
+    return;
+  }
+
+  const rule = serialRules.find(rule => rule.kitType === type);
+  if(!rule){
+    alert("No serial number rule exists for this kit item. Create one on the AT Serial Numbers page first.");
+    return;
+  }
+
+  for(let i=0; i<quantity; i++){
+    atBulkRows.push({
+      id:Date.now()+Math.random()+i,
+      kit_type:type,
+      kit_number:formatSerial(rule, i),
+      size,
+      notes
+    });
+  }
+
+  document.getElementById("atBulkQuantity").value = "1";
+  renderATBulkTable();
+}
+
+function renderATBulkTable(){
+  const table = document.getElementById("atBulkTable");
+  if(!table) return;
+
+  table.innerHTML = atBulkRows.length ? "" : `<tr><td colspan="5" class="no-data">No AT bulk rows added yet.</td></tr>`;
+
+  atBulkRows.forEach(row => {
+    table.innerHTML += `
+      <tr>
+        <td>${escapeHtml(row.kit_type)}</td>
+        <td>${escapeHtml(row.kit_number)}</td>
+        <td>${escapeHtml(row.size)}</td>
+        <td>${escapeHtml(row.notes)}</td>
+        <td><button class="danger" onclick="removeATBulkRow('${row.id}')">Remove</button></td>
+      </tr>
+    `;
+  });
+}
+
+function removeATBulkRow(id){
+  atBulkRows = atBulkRows.filter(row => String(row.id) !== String(id));
+  renderATBulkTable();
+}
+
+function clearATBulkTable(){
+  atBulkRows = [];
+  renderATBulkTable();
+}
+
+async function saveATBulkTable(){
+  if(!atBulkRows.length){
+    alert("Add rows to the AT bulk table first.");
+    return;
+  }
+
+  const duplicate = atBulkRows.find(row => atKit.some(existing => existing.kit_number === row.kit_number));
+  if(duplicate){
+    alert("Identifying number already exists: " + duplicate.kit_number);
+    return;
+  }
+
+  const records = atBulkRows.map(row => ({
+    kit_type:row.kit_type,
+    kit_number:row.kit_number,
+    size:row.size,
+    location:"",
+    condition:"Good",
+    notes:row.notes,
+    status:"Available"
+  }));
+
+  const {error} = await supabaseClient.from("at_kit").insert(records);
+  if(error){
+    console.error(error);
+    alert("Could not save AT bulk kit.");
+    return;
+  }
+
+  // Advance serial numbers only after successful insert
+  atBulkRows.forEach(row => {
+    const rule = serialRules.find(rule => rule.kitType === row.kit_type);
+    if(rule){
+      rule.nextNumber = Number(rule.nextNumber || 1) + 1;
+    }
+  });
+
+  saveSerialRules();
+  atBulkRows = [];
+
+  await loadATKit();
+  renderATBulkTable();
+  renderSerialRules();
+  showNextATSerialPreview();
+
+  alert("AT bulk kit saved successfully.");
 }
 
 
