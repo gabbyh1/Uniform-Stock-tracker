@@ -68,6 +68,7 @@ tr:nth-child(even){background:#f8fbff}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;padding:14px}
 .modal-card{background:white;max-width:720px;width:100%;margin:30px auto;border-radius:14px;padding:20px;max-height:85vh;overflow:auto}
 .modal-actions{margin-top:14px}
+.small-help{color:var(--muted);font-size:14px;margin:4px 0 8px;line-height:1.35}
 hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 
 @media(max-width:750px){
@@ -122,7 +123,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
     <input id="staffPassword" type="password" placeholder="Enter staff password" onkeydown="if(event.key==='Enter') loginStaff()">
     <button onclick="loginStaff()">Login</button>
     <button class="secondary" onclick="goHome()">Back</button>
-    <p>Default password: <b>1384-Staff</b></p>
+    <p>Authorised staff only.</p>
   </div>
 </section>
 
@@ -165,6 +166,13 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <input id="uniformMin" type="number" placeholder="Low stock level" value="1">
         </div>
         <button class="primary" onclick="addUniformStock()">Add Uniform Stock</button>
+        <hr>
+        <h3>Bulk Update Uniform Stock</h3>
+        <p class="small-help">Paste one item per line: <b>Item, Size, Box, Quantity, Low Stock Level</b></p>
+        <textarea id="uniformBulkText" rows="7" placeholder="GELTEX, 160/88, Box 1, 10, 1&#10;Male D.Blue Shirt, 41/43, Box 8, 4, 1"></textarea>
+        <button onclick="bulkUpdateUniformStock()">Add / Update Bulk Uniform Stock</button>
+        <button class="danger" onclick="bulkReplaceUniformStock()">Replace ALL Uniform Stock With Bulk List</button>
+
         <div class="table-wrap">
           <table>
             <thead><tr><th>Item</th><th>Size</th><th>Box</th><th>Qty</th><th>Low Level</th><th>Edit</th><th>Delete</th></tr></thead>
@@ -227,6 +235,13 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
           <input id="atNotes" placeholder="Notes">
         </div>
         <button class="primary" onclick="addATKit()">Add AT Kit</button>
+        <hr>
+        <h3>Bulk Update AT Kit</h3>
+        <p class="small-help">Paste one item per line: <b>Type, Number, Size, Location, Condition, Notes, Status</b></p>
+        <textarea id="atBulkText" rows="7" placeholder="Helmet, H001, Medium, AT Store, Good, , Available&#10;Harness, HA001, Small, AT Store, Good, , Available"></textarea>
+        <button onclick="bulkUpdateATKit()">Add / Update Bulk AT Kit</button>
+        <button class="danger" onclick="bulkReplaceATKit()">Replace ALL AT Kit With Bulk List</button>
+
         <div class="table-wrap">
           <table>
             <thead><tr><th>Type</th><th>Number</th><th>Size</th><th>Location</th><th>Condition</th><th>Status</th><th>Borrowed</th><th>Notes</th><th>Delete</th></tr></thead>
@@ -982,6 +997,172 @@ async function disableTempPassword(id){
   if(error){ console.error(error); alert("Could not disable password."); return; }
   await loadTempPasswords();
 }
+
+async function bulkUpdateUniformStock(){
+  const text = document.getElementById("uniformBulkText").value.trim();
+  if(!text){ alert("Paste uniform stock lines first."); return; }
+
+  const rows = parseCsvLines(text);
+  let added = 0, updated = 0;
+
+  for(const row of rows){
+    const item = (row[0] || "").trim();
+    const size = (row[1] || "").trim();
+    const box = (row[2] || "").trim();
+    const quantity = Number(row[3] || 0);
+    const warning = Number(row[4] || 1);
+    if(!item || !size) continue;
+
+    const existing = uniformStock.find(x =>
+      String(x.item || "").toLowerCase() === item.toLowerCase() &&
+      String(x.size || "").toLowerCase() === size.toLowerCase() &&
+      String(x.box_number || "").toLowerCase() === box.toLowerCase()
+    );
+
+    if(existing){
+      const {error} = await supabaseClient.from("uniform_stock").update({
+        quantity:isNaN(quantity) ? 0 : quantity,
+        warning_level:isNaN(warning) ? 1 : warning,
+        updated_at:todayISO()
+      }).eq("id", existing.id);
+      if(error){ console.error(error); alert("Bulk update failed on: " + item + " / " + size); return; }
+      updated++;
+    }else{
+      const {error} = await supabaseClient.from("uniform_stock").insert([{
+        item, size, box_number:box,
+        quantity:isNaN(quantity) ? 0 : quantity,
+        warning_level:isNaN(warning) ? 1 : warning
+      }]);
+      if(error){ console.error(error); alert("Bulk insert failed on: " + item + " / " + size); return; }
+      added++;
+    }
+  }
+
+  await loadUniformStock();
+  alert(`Bulk uniform update complete. Added: ${added}. Updated: ${updated}.`);
+}
+
+async function bulkReplaceUniformStock(){
+  const text = document.getElementById("uniformBulkText").value.trim();
+  if(!text){ alert("Paste uniform stock lines first."); return; }
+  if(!confirm("This will DELETE all current uniform stock and replace it with the bulk list. Continue?")) return;
+
+  const records = parseCsvLines(text).map(row => {
+    const item = (row[0] || "").trim();
+    const size = (row[1] || "").trim();
+    const box = (row[2] || "").trim();
+    const quantity = Number(row[3] || 0);
+    const warning = Number(row[4] || 1);
+    if(!item || !size) return null;
+    return {item, size, box_number:box, quantity:isNaN(quantity) ? 0 : quantity, warning_level:isNaN(warning) ? 1 : warning};
+  }).filter(Boolean);
+
+  if(!records.length){ alert("No valid records found."); return; }
+
+  const {error:deleteError} = await supabaseClient.from("uniform_stock").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  if(deleteError){ console.error(deleteError); alert("Could not clear uniform stock."); return; }
+
+  const {error:insertError} = await supabaseClient.from("uniform_stock").insert(records);
+  if(insertError){ console.error(insertError); alert("Could not insert replacement uniform stock."); return; }
+
+  await loadUniformStock();
+  alert("Uniform stock replaced successfully.");
+}
+
+async function bulkUpdateATKit(){
+  const text = document.getElementById("atBulkText").value.trim();
+  if(!text){ alert("Paste AT kit lines first."); return; }
+
+  const rows = parseCsvLines(text);
+  let added = 0, updated = 0;
+
+  for(const row of rows){
+    const kit_type = (row[0] || "").trim();
+    const kit_number = (row[1] || "").trim();
+    const size = (row[2] || "").trim();
+    const location = (row[3] || "").trim();
+    const condition = (row[4] || "Good").trim();
+    const notes = (row[5] || "").trim();
+    const status = (row[6] || "Available").trim();
+    if(!kit_type || !kit_number) continue;
+
+    const existing = atKit.find(x => String(x.kit_number || "").toLowerCase() === kit_number.toLowerCase());
+
+    if(existing){
+      const {error} = await supabaseClient.from("at_kit").update({
+        kit_type, size, location, condition, notes, status, updated_at:todayISO()
+      }).eq("id", existing.id);
+      if(error){ console.error(error); alert("Bulk AT update failed on: " + kit_number); return; }
+      updated++;
+    }else{
+      const {error} = await supabaseClient.from("at_kit").insert([{kit_type, kit_number, size, location, condition, notes, status}]);
+      if(error){ console.error(error); alert("Bulk AT insert failed on: " + kit_number); return; }
+      added++;
+    }
+  }
+
+  await loadATKit();
+  alert(`Bulk AT kit update complete. Added: ${added}. Updated: ${updated}.`);
+}
+
+async function bulkReplaceATKit(){
+  const text = document.getElementById("atBulkText").value.trim();
+  if(!text){ alert("Paste AT kit lines first."); return; }
+  if(!confirm("This will DELETE all current AT kit stock and replace it with the bulk list. Continue?")) return;
+
+  const records = parseCsvLines(text).map(row => {
+    const kit_type = (row[0] || "").trim();
+    const kit_number = (row[1] || "").trim();
+    const size = (row[2] || "").trim();
+    const location = (row[3] || "").trim();
+    const condition = (row[4] || "Good").trim();
+    const notes = (row[5] || "").trim();
+    const status = (row[6] || "Available").trim();
+    if(!kit_type || !kit_number) return null;
+    return {kit_type, kit_number, size, location, condition, notes, status};
+  }).filter(Boolean);
+
+  if(!records.length){ alert("No valid records found."); return; }
+
+  const {error:deleteError} = await supabaseClient.from("at_kit").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  if(deleteError){ console.error(deleteError); alert("Could not clear AT kit."); return; }
+
+  const {error:insertError} = await supabaseClient.from("at_kit").insert(records);
+  if(insertError){ console.error(insertError); alert("Could not insert replacement AT kit."); return; }
+
+  await loadATKit();
+  alert("AT kit replaced successfully.");
+}
+
+function parseCsvLines(text){
+  return text.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith("#")).map(parseCsvLine);
+}
+
+function parseCsvLine(line){
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+
+  for(let i = 0; i < line.length; i++){
+    const char = line[i];
+    if(char === '"' && line[i + 1] === '"'){
+      current += '"';
+      i++;
+    }else if(char === '"'){
+      inQuotes = !inQuotes;
+    }else if(char === "," && !inQuotes){
+      result.push(current.trim());
+      current = "";
+    }else{
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+
 document.addEventListener("DOMContentLoaded", () => { goHome(); });
 </script>
 </body>
