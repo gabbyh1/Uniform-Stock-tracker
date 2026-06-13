@@ -1,1 +1,94 @@
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+	--blue:#0b1f3a;
+	--blue2:#12345a;
+	--light:#dbeafe;
+	--red:#c8102e;
+	--gold:#f2c94c;
+	--bg:#f3f6fa;
+	--card:#fff;
+	--text:#1d2733;
+	--muted:#607086;
+	--border:#d6dee8;
+	--green:#e7f7e7;
+	--yellow:#fff4cf;
+	--pink:#ffe0e4;
+}
+body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;justify-content:center;align-items:center;padding:18px;background:linear-gradient(135deg,var(--blue),#1a5a96)}
+.app{display:none;min-height:100vh}
+.app.active{display:block}
+.staff-page{display:none}
+.staff-page.active{display:block}
+.login-card{background:white;border-radius:18px;padding:28px;width:100%;max-width:430px;text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.24);border-top:8px solid var(--red)}
+.rafac-badge{display:inline-block;background:var(--blue);color:white;border:3px solid var(--gold);border-radius:999px;padding:10px 16px;font-weight:bold;letter-spacing:1px;margin-bottom:14px}
+.login-card h1{margin-bottom:8px;color:var(--blue);font-size:28px}
+.login-card p{margin-bottom:18px;color:var(--muted)}
+button{cursor:pointer;border:none;border-radius:8px;padding:10px 14px;font-weight:bold;font-size:15px;margin:2px}
+.login-card button,.primary{background:var(--blue);color:white}
+.login-card button:hover,.primary:hover{background:var(--blue2)}
+.secondary{background:#dde5ef;color:var(--blue)}
+.danger{background:var(--red);color:white}
+header{background:var(--blue);color:white;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:5px solid var(--red)}
+header h1{font-size:24px}
+header p{color:#d7e2f0;margin-top:4px}
+nav{display:flex;flex-wrap:wrap;gap:8px;background:white;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);position:sticky;top:0;z-index:10}
+nav button{background:var(--light);color:var(--blue);flex:1 1 150px;min-height:42px}
+main{padding:18px}
+.card{background:var(--card);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 4px 12px rgba(0,0,0,.08);border:1px solid var(--border)}
+.card h2{color:var(--blue);margin-bottom:14px;font-size:24px}
+.card h3{margin:18px 0 10px;color:var(--blue)}
+.top-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.top-row input{flex:1;min-width:220px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:14px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font:inherit;min-height:42px}
+textarea{resize:vertical}
+.info-box{background:#eef5ff;border-left:5px solid var(--blue);padding:12px;border-radius:8px;margin:10px 0 14px}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%}
+table{width:100%;border-collapse:collapse;margin-top:12px;min-width:760px}
+th{background:var(--blue);color:white;padding:10px;text-align:left;white-space:nowrap}
+td{padding:9px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:nth-child(even){background:#f8fbff}
+.no-data{text-align:center;color:var(--muted);padding:20px}
+.low-row{background:var(--yellow)!important}
+.out-row{background:var(--pink)!important}
+.good-row{background:var(--green)!important}
+.checklist label{display:block;background:#f8fbff;border:1px solid var(--border);padding:10px;border-radius:8px;margin:6px 0}
+.checklist input{width:auto;min-height:auto;margin-right:8px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;padding:14px}
+.modal-card{background:white;max-width:720px;width:100%;margin:30px auto;border-radius:14px;padding:20px;max-height:85vh;overflow:auto}
+.modal-actions{margin-top:14px}
+.small-help{color:var(--muted);font-size:14px;margin:4px 0 8px;line-height:1.35}
+hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+
+@media(max-width:750px){
+	.screen.active{align-items:flex-start;padding-top:40px}
+	.login-card{padding:24px 18px;border-radius:14px}
+	.login-card h1{font-size:24px}
+	.login-card button{width:100%;margin:6px 0;min-height:46px}
+	header{flex-direction:column;align-items:stretch;text-align:center;padding:14px}
+	header h1{font-size:21px}
+	header button{width:100%}
+	nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:static}
+	nav button{width:100%;font-size:13px;padding:10px 8px}
+	main{padding:10px}
+	.card{padding:14px;border-radius:12px}
+	.card h2{font-size:21px}
+	.form-grid{grid-template-columns:1fr}
+	.top-row{flex-direction:column}
+	.top-row input,.top-row button{width:100%}
+	input,select,textarea,button{font-size:16px}
+	.table-wrap{border:1px solid var(--border);border-radius:10px;background:white}
+	table{min-width:700px;font-size:13px}
+	th,td{padding:8px}
+	.modal-card{margin:20px auto;padding:16px}
+}
+@media(max-width:430px){
+	nav{grid-template-columns:1fr}
+	.rafac-badge{padding:8px 13px;font-size:13px}
+	.login-card h1{font-size:22px}
+	.card h2{font-size:19px}
+	table{min-width:640px}
+}
 
