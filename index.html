@@ -100,6 +100,19 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   .card h2{font-size:19px}
   table{min-width:640px}
 }
+
+.header-actions{display:flex;gap:8px;align-items:center}
+.mobile-menu-btn{display:none}
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:14px 0}
+.dash-tile{background:#eef5ff;border-left:5px solid var(--blue);border-radius:12px;padding:14px;text-align:center}
+.dash-tile h3{font-size:30px;margin:0;color:var(--blue)}
+.dash-tile p{color:var(--muted);font-weight:bold;margin-top:4px}
+@media(max-width:750px){
+  .mobile-menu-btn{display:block}
+  nav{display:none}
+  nav.open{display:grid}
+}
+
 </style>
 </head>
 
@@ -133,10 +146,14 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
       <h1>1384 RAFAC Kit System</h1>
       <p id="loginStatus">Staff access</p>
     </div>
-    <button class="danger" onclick="logout()">Logout</button>
+    <div class="header-actions">
+      <button class="secondary mobile-menu-btn" onclick="toggleMobileMenu()">☰ Menu</button>
+      <button class="danger" onclick="logout()">Logout</button>
+    </div>
   </header>
 
   <nav>
+    <button onclick="showStaffPage('dashboardPage')">Dashboard</button>
     <button onclick="showStaffPage('uniformStockPage')">Uniform Stock</button>
     <button onclick="showStaffPage('uniformIssuedPage')">Issued Uniform</button>
     <button onclick="showStaffPage('uniformRequestsPage')">Uniform Requests</button>
@@ -148,11 +165,121 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
     <button onclick="showStaffPage('kitCheckerPage')">Kit Checker</button>
     <button onclick="showStaffPage('serviceabilityPage')">Serviceability</button>
     <button onclick="showStaffPage('atRequestsPage')">AT Requests</button>
+    <button onclick="showStaffPage('eventsPage')">Events</button>
+    <button onclick="showStaffPage('missingKitPage')">Missing Kit</button>
+    <button onclick="showStaffPage('borrowStatsPage')">Borrow Stats</button>
+    <button onclick="showStaffPage('inspectionPage')">Inspection</button>
+    <button onclick="showStaffPage('lowStockPage')">Low Stock List</button>
     <button onclick="showStaffPage('tempPasswordPage')">Temp Passwords</button>
   </nav>
 
   <main>
-    <section id="uniformStockPage" class="staff-page active">
+
+    <section id="dashboardPage" class="staff-page active">
+      <div class="card">
+        <h2>Squadron Kit Dashboard</h2>
+        <div class="dashboard-grid">
+          <div class="dash-tile"><h3 id="dashUniformRequests">0</h3><p>Pending Uniform Requests</p></div>
+          <div class="dash-tile"><h3 id="dashATRequests">0</h3><p>Pending AT Requests</p></div>
+          <div class="dash-tile"><h3 id="dashATOut">0</h3><p>AT Kit Currently Issued</p></div>
+          <div class="dash-tile"><h3 id="dashLowStock">0</h3><p>Low / Out Uniform Stock</p></div>
+          <div class="dash-tile"><h3 id="dashInspectionsDue">0</h3><p>Inspections Due Soon</p></div>
+          <div class="dash-tile"><h3 id="dashEvents">0</h3><p>Active Events</p></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Quick Actions</h2>
+        <button onclick="showStaffPage('eventsPage')">Create / Open Event</button>
+        <button onclick="showStaffPage('missingKitPage')">View Missing Kit</button>
+        <button onclick="showStaffPage('lowStockPage')">Generate Low Stock List</button>
+        <button onclick="showStaffPage('inspectionPage')">Inspection Checks</button>
+      </div>
+    </section>
+
+    <section id="eventsPage" class="staff-page">
+      <div class="card">
+        <h2>Event-Based Issuing Dashboard</h2>
+        <p class="small-help">Create an event, add cadets, then issue AT kit against that event.</p>
+        <div class="form-grid">
+          <input id="eventNameInput" placeholder="Event name e.g. Silver Expedition">
+          <input id="eventDateInput" type="date">
+          <input id="eventLocationInput" placeholder="Location">
+        </div>
+        <button class="primary" onclick="createEvent()">Create Event</button>
+        <hr>
+        <div class="form-grid">
+          <select id="eventDashboardSelect" onchange="loadEventDashboard()"><option value="">Select event</option></select>
+          <input id="eventCadetInput" placeholder="Cadet name">
+          <button onclick="addCadetToEvent()">Add Cadet</button>
+        </div>
+        <div class="dashboard-grid">
+          <div class="dash-tile"><h3 id="eventCadetCount">0</h3><p>Cadets</p></div>
+          <div class="dash-tile"><h3 id="eventIssuedCount">0</h3><p>Items Issued</p></div>
+          <div class="dash-tile"><h3 id="eventReturnedCount">0</h3><p>Items Returned</p></div>
+          <div class="dash-tile"><h3 id="eventOutstandingCount">0</h3><p>Outstanding</p></div>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Cadet</th><th>Issue Kit</th><th>Outstanding Kit</th><th>Remove</th></tr></thead><tbody id="eventCadetsDashboardTable"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section id="missingKitPage" class="staff-page">
+      <div class="card">
+        <h2>Missing / Outstanding Kit Dashboard</h2>
+        <p class="small-help">Shows AT kit currently issued and not yet returned.</p>
+        <div class="top-row">
+          <input id="missingKitSearch" placeholder="Search cadet, event, kit type or number..." oninput="renderMissingKitDashboard()">
+          <button onclick="renderMissingKitDashboard()">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Cadet</th><th>Event</th><th>Type</th><th>Number</th><th>Issued</th><th>Days Out</th><th>Action</th></tr></thead><tbody id="missingKitTable"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section id="borrowStatsPage" class="staff-page">
+      <div class="card">
+        <h2>AT Kit Borrowing Statistics</h2>
+        <p class="small-help">Ranks AT kit by how many times it has been issued.</p>
+        <div class="table-wrap">
+          <table><thead><tr><th>Type</th><th>Number</th><th>Total Borrows</th><th>Currently Issued</th><th>Last Issued</th></tr></thead><tbody id="borrowStatsTable"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section id="inspectionPage" class="staff-page">
+      <div class="card">
+        <h2>Inspection System</h2>
+        <p class="small-help">Record checks for AT kit. Items due within 30 days show amber. Overdue shows red.</p>
+        <div class="form-grid">
+          <select id="inspectionKitSelect"><option value="">Select AT kit item</option></select>
+          <input id="inspectionDate" type="date">
+          <input id="inspectionInterval" type="number" value="365" placeholder="Days until next check">
+          <input id="inspectionInspector" placeholder="Inspector name">
+          <input id="inspectionCondition" placeholder="Condition / notes">
+        </div>
+        <button class="primary" onclick="saveInspectionRecord()">Save Inspection</button>
+        <div class="table-wrap">
+          <table><thead><tr><th>Type</th><th>Number</th><th>Last Check</th><th>Next Due</th><th>Days</th><th>Inspector</th><th>Condition</th><th>Delete</th></tr></thead><tbody id="inspectionTable"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section id="lowStockPage" class="staff-page">
+      <div class="card">
+        <h2>Automatic Low Stock Ordering List</h2>
+        <p class="small-help">Shows uniform items where quantity is at or below the low stock level.</p>
+        <button onclick="renderLowStockOrderingList()">Refresh List</button>
+        <button onclick="copyLowStockList()">Copy Order List</button>
+        <textarea id="lowStockTextOutput" rows="8" placeholder="Low stock list will appear here..."></textarea>
+        <div class="table-wrap">
+          <table><thead><tr><th>Item</th><th>Size</th><th>Box</th><th>Quantity</th><th>Low Level</th><th>Suggested Order</th></tr></thead><tbody id="lowStockTable"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section id="uniformStockPage" class="staff-page">
       <div class="card">
         <h2>Uniform Stock</h2>
         <div class="top-row">
@@ -543,6 +670,8 @@ let kitLists = [];
 let kitListItems = [];
 let serviceChecks = [];
 let tempPasswords = [];
+let kitEvents = JSON.parse(localStorage.getItem("kitEvents") || "[]");
+let inspectionRecords = JSON.parse(localStorage.getItem("inspectionRecords") || "[]");
 let serialRules = JSON.parse(localStorage.getItem("serialRules") || "[]");
 let uniformBulkRows = [];
 let atBulkRows = [];
@@ -559,6 +688,8 @@ function todayISO(){return new Date().toISOString();}
 function saveLocal(){
   localStorage.setItem("eventCadets", JSON.stringify(eventCadets));
   localStorage.setItem("pendingEventIssues", JSON.stringify(pendingEventIssues));
+  localStorage.setItem("kitEvents", JSON.stringify(kitEvents));
+  localStorage.setItem("inspectionRecords", JSON.stringify(inspectionRecords));
 }
 function showOnly(id){
   ["homePage","staffLoginPage"].forEach(x => document.getElementById(x)?.classList.remove("active"));
@@ -588,11 +719,18 @@ async function openStaffApp(label){
   document.getElementById("loginStatus").innerText = label;
   showOnly("staffApp");
   await loadAll();
-  showStaffPage("uniformStockPage");
+  showStaffPage("dashboardPage");
 }
 function showStaffPage(id){
   document.querySelectorAll(".staff-page").forEach(page => page.classList.remove("active"));
   document.getElementById(id)?.classList.add("active");
+  document.querySelector("nav")?.classList.remove("open");
+  if(id === "dashboardPage") renderMainDashboard();
+  if(id === "eventsPage"){ populateEventDashboardSelect(); loadEventDashboard(); }
+  if(id === "missingKitPage") renderMissingKitDashboard();
+  if(id === "borrowStatsPage") renderBorrowStats();
+  if(id === "inspectionPage"){ populateInspectionKitDropdown(); renderInspectionSystem(); }
+  if(id === "lowStockPage") renderLowStockOrderingList();
   if(id === "uniformStockPage"){ renderUniformStock(); populateUniformBulkDropdowns(); renderUniformBulkTable(); }
   if(id === "uniformIssuedPage"){ populateUniformIssueDropdowns(); renderUniformIssues(); }
   if(id === "uniformRequestsPage") renderUniformRequests();
@@ -608,7 +746,7 @@ function showStaffPage(id){
 }
 async function loadAll(){
   await loadUniformStock(); await loadUniformIssues(); await loadUniformRequests();
-  await loadATKit(); await loadATIssues(); await loadATRequests();
+  await loadATKit(); await loadATIssues(); renderMissingKitDashboard(); renderBorrowStats(); renderMainDashboard(); renderEventDashboard(); await loadATRequests();
   await loadKitLists(); await loadServiceChecks(); await loadTempPasswords(false); populateUniformBulkDropdowns(); populateATBulkTypeDropdown();
 }
 async function loadUniformStock(){
@@ -837,7 +975,7 @@ async function issueATKit(){
   if(error){ console.error(error); alert("Kit marked issued but issue record failed."); return; }
   alert("AT kit issued.");
   document.getElementById("atIssueCadet").value = ""; document.getElementById("atIssueType").value = ""; document.getElementById("atIssueKit").innerHTML = `<option value="">Select item number</option>`; document.getElementById("atIssueEvent").value = ""; document.getElementById("atIssueNotes").value = "";
-  await loadATKit(); await loadATIssues();
+  await loadATKit(); await loadATIssues(); renderMissingKitDashboard(); renderBorrowStats(); renderMainDashboard(); renderEventDashboard();
 }
 async function loadATIssues(){
   const {data,error} = await supabaseClient.from("at_kit_issues").select("*").order("issued_at", {ascending:false});
@@ -854,7 +992,7 @@ async function returnATKit(issueId){
   if(!confirm("Mark this item as returned?")) return;
   await supabaseClient.from("at_kit_issues").update({returned:true, return_date:todayISO()}).eq("id", issueId);
   if(issue.kit_id) await supabaseClient.from("at_kit").update({status:"Available", updated_at:todayISO()}).eq("id", issue.kit_id);
-  await loadATKit(); await loadATIssues();
+  await loadATKit(); await loadATIssues(); renderMissingKitDashboard(); renderBorrowStats(); renderMainDashboard(); renderEventDashboard();
 }
 async function loadKitLists(){
   const {data:lists,error:listError} = await supabaseClient.from("at_kit_lists").select("*").eq("active", true).order("activity_name");
@@ -978,7 +1116,7 @@ async function issuePendingEventKit(id){
   const {error} = await supabaseClient.from("at_kit_issues").insert([{kit_id:kit.id,kit_type:kit.kit_type,kit_number:kit.kit_number,cadet_name:row.cadet,event_name:row.eventName,issued_by:"Staff",returned:false,notes:"Issued via event kit checker"}]);
   if(error){ console.error(error); alert("Could not save issue record."); return; }
   pendingEventIssues = pendingEventIssues.filter(x => String(x.id) !== String(id));
-  saveLocal(); await loadATKit(); await loadATIssues(); renderPendingEventIssues();
+  saveLocal(); await loadATKit(); await loadATIssues(); renderMissingKitDashboard(); renderBorrowStats(); renderMainDashboard(); renderEventDashboard(); renderPendingEventIssues();
 }
 function removePendingIssue(id){pendingEventIssues = pendingEventIssues.filter(x => String(x.id) !== String(id)); saveLocal(); renderPendingEventIssues();}
 async function loadATRequests(){
@@ -1592,6 +1730,190 @@ async function saveATBulkTable(){
   showNextATSerialPreview();
 
   alert("AT bulk kit saved successfully.");
+}
+
+
+
+function toggleMobileMenu(){ document.querySelector("nav")?.classList.toggle("open"); }
+function setText(id, value){ const el = document.getElementById(id); if(el) el.textContent = value; }
+function daysUntil(dateValue){ if(!dateValue) return 9999; return Math.ceil((new Date(dateValue) - new Date()) / (1000*60*60*24)); }
+
+function renderMainDashboard(){
+  setText("dashUniformRequests", uniformRequests.filter(x => (x.status || "Pending") === "Pending").length);
+  setText("dashATRequests", atRequests.filter(x => (x.status || "Pending") === "Pending").length);
+  setText("dashATOut", atIssues.filter(x => !x.returned).length);
+  setText("dashLowStock", uniformStock.filter(x => Number(x.quantity || 0) <= Number(x.warning_level || 1)).length);
+  setText("dashInspectionsDue", inspectionRecords.filter(x => daysUntil(x.next_due_date) <= 30).length);
+  setText("dashEvents", kitEvents.length);
+}
+
+function createEvent(){
+  const name = document.getElementById("eventNameInput").value.trim();
+  const date = document.getElementById("eventDateInput").value;
+  const location = document.getElementById("eventLocationInput").value.trim();
+  if(!name){ alert("Enter an event name."); return; }
+  kitEvents.push({id:Date.now()+Math.random(), name, date, location, cadets:[]});
+  saveLocal();
+  document.getElementById("eventNameInput").value = "";
+  document.getElementById("eventDateInput").value = "";
+  document.getElementById("eventLocationInput").value = "";
+  populateEventDashboardSelect();
+  renderMainDashboard();
+  alert("Event created.");
+}
+
+function populateEventDashboardSelect(){
+  const select = document.getElementById("eventDashboardSelect"); if(!select) return;
+  const current = select.value;
+  select.innerHTML = `<option value="">Select event</option>`;
+  kitEvents.forEach(event => select.innerHTML += `<option value="${event.id}">${escapeHtml(event.name)} ${event.date ? "- " + escapeHtml(event.date) : ""}</option>`);
+  if(current) select.value = current;
+}
+
+function loadEventDashboard(){ renderEventDashboard(); }
+
+function addCadetToEvent(){
+  const eventId = document.getElementById("eventDashboardSelect").value;
+  const cadet = document.getElementById("eventCadetInput").value.trim();
+  if(!eventId || !cadet){ alert("Select an event and enter a cadet name."); return; }
+  const event = kitEvents.find(x => String(x.id) === String(eventId)); if(!event) return;
+  if(!event.cadets.includes(cadet)) event.cadets.push(cadet);
+  eventCadets[eventId] = event.cadets;
+  saveLocal();
+  document.getElementById("eventCadetInput").value = "";
+  renderEventDashboard();
+}
+
+function renderEventDashboard(){
+  const table = document.getElementById("eventCadetsDashboardTable"); if(!table) return;
+  const eventId = document.getElementById("eventDashboardSelect")?.value || "";
+  const event = kitEvents.find(x => String(x.id) === String(eventId));
+  if(!event){
+    table.innerHTML = `<tr><td colspan="4" class="no-data">Select an event.</td></tr>`;
+    setText("eventCadetCount", 0); setText("eventIssuedCount", 0); setText("eventReturnedCount", 0); setText("eventOutstandingCount", 0);
+    return;
+  }
+  const eventIssues = atIssues.filter(x => x.event_name === event.name);
+  setText("eventCadetCount", event.cadets.length);
+  setText("eventIssuedCount", eventIssues.length);
+  setText("eventReturnedCount", eventIssues.filter(x => x.returned).length);
+  setText("eventOutstandingCount", eventIssues.filter(x => !x.returned).length);
+  table.innerHTML = event.cadets.length ? "" : `<tr><td colspan="4" class="no-data">No cadets added to this event.</td></tr>`;
+  event.cadets.forEach(cadet => {
+    const cadetOutstanding = eventIssues.filter(x => x.cadet_name === cadet && !x.returned).map(x => `${x.kit_type} ${x.kit_number}`).join(", ");
+    table.innerHTML += `<tr><td>${escapeHtml(cadet)}</td><td><button onclick="startEventIssueForCadet('${event.id}', '${escapeHtml(cadet)}')">Issue Kit</button></td><td>${escapeHtml(cadetOutstanding || "None")}</td><td><button class="danger" onclick="removeCadetFromEvent('${event.id}', '${escapeHtml(cadet)}')">Remove</button></td></tr>`;
+  });
+}
+
+function startEventIssueForCadet(eventId, cadet){
+  const event = kitEvents.find(x => String(x.id) === String(eventId)); if(!event) return;
+  showStaffPage("atIssuePage");
+  document.getElementById("atIssueCadet").value = cadet;
+  document.getElementById("atIssueEvent").value = event.name;
+}
+
+function removeCadetFromEvent(eventId, cadet){
+  const event = kitEvents.find(x => String(x.id) === String(eventId)); if(!event) return;
+  if(!confirm("Remove this cadet from the event?")) return;
+  event.cadets = event.cadets.filter(x => x !== cadet);
+  eventCadets[eventId] = event.cadets;
+  saveLocal(); renderEventDashboard();
+}
+
+function renderMissingKitDashboard(){
+  const table = document.getElementById("missingKitTable"); if(!table) return;
+  const q = (document.getElementById("missingKitSearch")?.value || "").toLowerCase();
+  const rows = atIssues.filter(x => !x.returned).filter(x => [x.cadet_name,x.event_name,x.kit_type,x.kit_number].some(v => String(v || "").toLowerCase().includes(q)));
+  table.innerHTML = rows.length ? "" : `<tr><td colspan="7" class="no-data">No missing or outstanding kit.</td></tr>`;
+  rows.forEach(x => {
+    const daysOut = Math.max(0, Math.ceil((new Date() - new Date(x.issued_at || x.created_at)) / (1000*60*60*24)));
+    table.innerHTML += `<tr class="${daysOut > 30 ? "low-row" : ""}"><td>${escapeHtml(x.cadet_name)}</td><td>${escapeHtml(x.event_name)}</td><td>${escapeHtml(x.kit_type)}</td><td>${escapeHtml(x.kit_number)}</td><td>${formatDate(x.issued_at || x.created_at)}</td><td>${daysOut}</td><td><button onclick="returnATKit('${x.id}')">Mark Returned</button></td></tr>`;
+  });
+}
+
+function renderBorrowStats(){
+  const table = document.getElementById("borrowStatsTable"); if(!table) return;
+  const stats = {};
+  atIssues.forEach(issue => {
+    const key = `${issue.kit_type || ""}|${issue.kit_number || ""}`;
+    if(!stats[key]) stats[key] = {kit_type:issue.kit_type, kit_number:issue.kit_number, count:0, currentlyIssued:false, lastIssued:""};
+    stats[key].count++;
+    if(!issue.returned) stats[key].currentlyIssued = true;
+    const issuedDate = issue.issued_at || issue.created_at || "";
+    if(!stats[key].lastIssued || new Date(issuedDate) > new Date(stats[key].lastIssued)) stats[key].lastIssued = issuedDate;
+  });
+  const rows = Object.values(stats).sort((a,b) => b.count - a.count);
+  table.innerHTML = rows.length ? "" : `<tr><td colspan="5" class="no-data">No borrowing data yet.</td></tr>`;
+  rows.forEach(row => table.innerHTML += `<tr><td>${escapeHtml(row.kit_type)}</td><td>${escapeHtml(row.kit_number)}</td><td>${row.count}</td><td>${row.currentlyIssued ? "Yes" : "No"}</td><td>${formatDate(row.lastIssued)}</td></tr>`);
+}
+
+function populateInspectionKitDropdown(){
+  const select = document.getElementById("inspectionKitSelect"); if(!select) return;
+  const current = select.value;
+  select.innerHTML = `<option value="">Select AT kit item</option>`;
+  atKit.forEach(kit => select.innerHTML += `<option value="${kit.id}">${escapeHtml(kit.kit_type)} - ${escapeHtml(kit.kit_number)}</option>`);
+  if(current) select.value = current;
+}
+
+function saveInspectionRecord(){
+  const kitId = document.getElementById("inspectionKitSelect").value;
+  const date = document.getElementById("inspectionDate").value;
+  const interval = Number(document.getElementById("inspectionInterval").value || 365);
+  const inspector = document.getElementById("inspectionInspector").value.trim();
+  const condition = document.getElementById("inspectionCondition").value.trim();
+  const kit = atKit.find(x => String(x.id) === String(kitId));
+  if(!kit || !date){ alert("Select a kit item and inspection date."); return; }
+  const next = new Date(date); next.setDate(next.getDate() + interval);
+  inspectionRecords.push({id:Date.now()+Math.random(), kit_id:kit.id, kit_type:kit.kit_type, kit_number:kit.kit_number, last_check_date:date, next_due_date:next.toISOString().slice(0,10), inspector, condition});
+  saveLocal();
+  document.getElementById("inspectionKitSelect").value = "";
+  document.getElementById("inspectionDate").value = "";
+  document.getElementById("inspectionInterval").value = "365";
+  document.getElementById("inspectionInspector").value = "";
+  document.getElementById("inspectionCondition").value = "";
+  renderInspectionSystem(); renderMainDashboard();
+}
+
+function renderInspectionSystem(){
+  const table = document.getElementById("inspectionTable"); if(!table) return;
+  const rows = inspectionRecords.slice().sort((a,b) => new Date(a.next_due_date) - new Date(b.next_due_date));
+  table.innerHTML = rows.length ? "" : `<tr><td colspan="8" class="no-data">No inspection records yet.</td></tr>`;
+  rows.forEach(row => {
+    const days = daysUntil(row.next_due_date);
+    const cls = days <= 0 ? "out-row" : days <= 30 ? "low-row" : "good-row";
+    table.innerHTML += `<tr class="${cls}"><td>${escapeHtml(row.kit_type)}</td><td>${escapeHtml(row.kit_number)}</td><td>${escapeHtml(row.last_check_date)}</td><td>${escapeHtml(row.next_due_date)}</td><td>${days}</td><td>${escapeHtml(row.inspector)}</td><td>${escapeHtml(row.condition)}</td><td><button class="danger" onclick="deleteInspectionRecord('${row.id}')">Delete</button></td></tr>`;
+  });
+}
+
+function deleteInspectionRecord(id){
+  if(!confirm("Delete this inspection record?")) return;
+  inspectionRecords = inspectionRecords.filter(x => String(x.id) !== String(id));
+  saveLocal(); renderInspectionSystem(); renderMainDashboard();
+}
+
+function renderLowStockOrderingList(){
+  const table = document.getElementById("lowStockTable");
+  const output = document.getElementById("lowStockTextOutput");
+  if(!table || !output) return;
+  const rows = uniformStock.filter(x => Number(x.quantity || 0) <= Number(x.warning_level || 1)).sort((a,b) => String(a.item).localeCompare(String(b.item)) || String(a.size).localeCompare(String(b.size)));
+  table.innerHTML = rows.length ? "" : `<tr><td colspan="6" class="no-data">No low stock items.</td></tr>`;
+  const lines = [];
+  rows.forEach(row => {
+    const qty = Number(row.quantity || 0);
+    const min = Number(row.warning_level || 1);
+    const suggested = Math.max(1, (min * 2) - qty);
+    lines.push(`${row.item} | Size: ${row.size} | Box: ${row.box_number || ""} | Current: ${qty} | Suggested order: ${suggested}`);
+    table.innerHTML += `<tr class="${qty <= 0 ? "out-row" : "low-row"}"><td>${escapeHtml(row.item)}</td><td>${escapeHtml(row.size)}</td><td>${escapeHtml(row.box_number)}</td><td>${qty}</td><td>${min}</td><td>${suggested}</td></tr>`;
+  });
+  output.value = lines.join("\\n");
+}
+
+function copyLowStockList(){
+  const output = document.getElementById("lowStockTextOutput");
+  if(!output || !output.value){ alert("Generate the low stock list first."); return; }
+  output.select();
+  document.execCommand("copy");
+  alert("Low stock list copied.");
 }
 
 
