@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b1f3a">
+<meta name="description" content="1384 RAFAC Uniform and Adventure Training Kit single-page application">
 <title>1384 RAFAC Kit System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -719,12 +721,56 @@ async function openStaffApp(label){
   document.getElementById("loginStatus").innerText = label;
   showOnly("staffApp");
   await loadAll();
-  showStaffPage("dashboardPage");
+  const requestedRoute = location.hash.replace("#", "");
+  showStaffPage(routeToPage(requestedRoute || "dashboard"));
 }
+const SPA_ROUTES = {
+  "dashboard":"dashboardPage",
+  "uniform-stock":"uniformStockPage",
+  "uniform-issued":"uniformIssuedPage",
+  "uniform-requests":"uniformRequestsPage",
+  "at-stock":"atStockPage",
+  "at-issue":"atIssuePage",
+  "kit-lists":"kitListPage",
+  "serial-numbers":"serialRulesPage",
+  "events":"eventsPage",
+  "event-issues":"eventIssuePage",
+  "kit-checker":"kitCheckerPage",
+  "missing-kit":"missingKitPage",
+  "borrow-stats":"borrowStatsPage",
+  "inspections":"inspectionPage",
+  "serviceability":"serviceabilityPage",
+  "low-stock":"lowStockPage",
+  "at-requests":"atRequestsPage",
+  "temporary-passwords":"tempPasswordPage"
+};
+
+const PAGE_ROUTES = Object.fromEntries(
+  Object.entries(SPA_ROUTES).map(([route, page]) => [page, route])
+);
+
+function routeToPage(route){
+  return SPA_ROUTES[route] || "dashboardPage";
+}
+
+function pageToRoute(pageId){
+  return PAGE_ROUTES[pageId] || "dashboard";
+}
+
 function showStaffPage(id){
   document.querySelectorAll(".staff-page").forEach(page => page.classList.remove("active"));
   document.getElementById(id)?.classList.add("active");
   document.querySelector("nav")?.classList.remove("open");
+
+  const route = pageToRoute(id);
+  if(location.hash !== "#" + route){
+    history.replaceState(null, "", "#" + route);
+  }
+
+  document.querySelectorAll("nav button").forEach(button => {
+    const action = button.getAttribute("onclick") || "";
+    button.classList.toggle("active-nav", action.includes("'" + id + "'"));
+  });
   if(id === "dashboardPage") renderMainDashboard();
   if(id === "eventsPage"){ populateEventDashboardSelect(); loadEventDashboard(); }
   if(id === "missingKitPage") renderMissingKitDashboard();
@@ -1917,7 +1963,16 @@ function copyLowStockList(){
 }
 
 
-document.addEventListener("DOMContentLoaded", () => { goHome(); });
+window.addEventListener("hashchange", () => {
+  const staffApp = document.getElementById("staffApp");
+  if(staffApp?.classList.contains("active")){
+    showStaffPage(routeToPage(location.hash.replace("#", "")));
+  }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  goHome();
+});
 </script>
 </body>
 </html>
