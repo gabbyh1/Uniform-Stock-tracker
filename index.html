@@ -36,6 +36,7 @@ body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--tex
 .rafac-badge{display:inline-block;background:var(--blue);color:white;border:3px solid var(--gold);border-radius:999px;padding:10px 16px;font-weight:bold;letter-spacing:1px;margin-bottom:14px}
 .login-card h1{margin-bottom:8px;color:var(--blue);font-size:28px}
 .login-card p{margin-bottom:18px;color:var(--muted)}
+.login-card input{margin-bottom:10px}
 button{cursor:pointer;border:none;border-radius:8px;padding:10px 14px;font-weight:bold;font-size:15px;margin:2px}
 .login-card button,.primary{background:var(--blue);color:white}
 .login-card button:hover,.primary:hover{background:var(--blue2)}
@@ -44,9 +45,20 @@ button{cursor:pointer;border:none;border-radius:8px;padding:10px 14px;font-weigh
 header{background:var(--blue);color:white;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:5px solid var(--red)}
 header h1{font-size:24px}
 header p{color:#d7e2f0;margin-top:4px}
-nav{display:flex;flex-wrap:wrap;gap:8px;background:white;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);position:sticky;top:0;z-index:10}
-nav button{background:var(--light);color:var(--blue);flex:1 1 150px;min-height:42px}
-main{padding:18px}
+.staff-layout{display:grid;grid-template-columns:250px minmax(0,1fr);align-items:start}
+.staff-layout main{display:flex;flex-direction:column}
+.staff-nav{background:white;padding:16px 12px;box-shadow:2px 0 8px rgba(0,0,0,.08);position:sticky;top:0;z-index:10;height:100vh;overflow-y:auto;border-right:1px solid var(--border)}
+.nav-group{margin-bottom:18px}
+.nav-group:last-child{margin-bottom:0}
+.nav-group-title{color:var(--muted);font-size:12px;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;padding:0 8px;margin-bottom:6px}
+.nav-group-buttons{display:flex;flex-direction:column;gap:5px}
+.staff-nav button{background:var(--light);color:var(--blue);width:100%;min-height:42px;text-align:left;margin:0;padding:10px 12px}
+.staff-nav button:hover{background:#cbdff8}
+.staff-nav button.active-nav{background:var(--blue);color:white}
+main{padding:18px;min-width:0}
+.consolidated-section{scroll-margin-top:18px}
+#uniformStockPage{order:1}
+#lowStockPage{order:2}
 .card{background:var(--card);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 4px 12px rgba(0,0,0,.08);border:1px solid var(--border)}
 .card h2{color:var(--blue);margin-bottom:14px;font-size:24px}
 .card h3{margin:18px 0 10px;color:var(--blue)}
@@ -81,8 +93,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   header{flex-direction:column;align-items:stretch;text-align:center;padding:14px}
   header h1{font-size:21px}
   header button{width:100%}
-  nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:static}
-  nav button{width:100%;font-size:13px;padding:10px 8px}
   main{padding:10px}
   .card{padding:14px;border-radius:12px}
   .card h2{font-size:21px}
@@ -96,7 +106,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   .modal-card{margin:20px auto;padding:16px}
 }
 @media(max-width:430px){
-  nav{grid-template-columns:1fr}
   .rafac-badge{padding:8px 13px;font-size:13px}
   .login-card h1{font-size:22px}
   .card h2{font-size:19px}
@@ -111,8 +120,14 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 .dash-tile p{color:var(--muted);font-weight:bold;margin-top:4px}
 @media(max-width:750px){
   .mobile-menu-btn{display:block}
-  nav{display:none}
-  nav.open{display:grid}
+  .staff-layout{display:block}
+  .staff-nav{display:none;position:static;height:auto;max-height:none;border-right:none;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .staff-nav.open{display:block}
+  .nav-group-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .staff-nav button{font-size:13px;padding:10px 8px}
+}
+@media(max-width:430px){
+  .nav-group-buttons{grid-template-columns:1fr}
 }
 
 </style>
@@ -135,10 +150,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   <div class="login-card">
     <div class="rafac-badge">RAFAC</div>
     <h1>Staff Login</h1>
-    <input id="staffPassword" type="password" placeholder="Enter staff password" onkeydown="if(event.key==='Enter') loginStaff()">
-    <button onclick="loginStaff()">Login</button>
+    <input id="staffUsername" autocomplete="username" placeholder="Temporary username (staff leave blank)">
+    <input id="staffPassword" type="password" autocomplete="current-password" placeholder="Enter staff password" onkeydown="if(event.key==='Enter') loginStaff()">
+    <button id="staffLoginButton" onclick="loginStaff()">Login</button>
     <button class="secondary" onclick="goHome()">Back</button>
-    <p>Authorised staff only.</p>
+    <p>Permanent staff use the password only. Temporary staff use their username and password.</p>
   </div>
 </section>
 
@@ -154,28 +170,55 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
     </div>
   </header>
 
-  <nav>
-    <button onclick="showStaffPage('dashboardPage')">Dashboard</button>
-    <button onclick="showStaffPage('uniformStockPage')">Uniform Stock</button>
-    <button onclick="showStaffPage('uniformIssuedPage')">Issued Uniform</button>
-    <button onclick="showStaffPage('uniformRequestsPage')">Uniform Requests</button>
-    <button onclick="showStaffPage('atStockPage')">AT Kit Stock</button>
-    <button onclick="showStaffPage('atIssuePage')">Issue AT Kit</button>
-    <button onclick="showStaffPage('kitListPage')">Kit List Creator</button>
-    <button onclick="showStaffPage('serialRulesPage')">AT Serial Numbers</button>
-    <button onclick="showStaffPage('eventIssuePage')">Event Issue Sheet</button>
-    <button onclick="showStaffPage('kitCheckerPage')">Kit Checker</button>
-    <button onclick="showStaffPage('serviceabilityPage')">Serviceability</button>
-    <button onclick="showStaffPage('atRequestsPage')">AT Requests</button>
-    <button onclick="showStaffPage('eventsPage')">Events</button>
-    <button onclick="showStaffPage('missingKitPage')">Missing Kit</button>
-    <button onclick="showStaffPage('borrowStatsPage')">Borrow Stats</button>
-    <button onclick="showStaffPage('inspectionPage')">Inspection</button>
-    <button onclick="showStaffPage('lowStockPage')">Low Stock List</button>
-    <button onclick="showStaffPage('tempPasswordPage')">Temp Passwords</button>
-  </nav>
+  <div class="staff-layout">
+    <nav id="staffNav" class="staff-nav" aria-label="Staff navigation">
+      <div class="nav-group">
+        <div class="nav-group-title">Overview</div>
+        <div class="nav-group-buttons">
+          <button onclick="showStaffPage('dashboardPage')">Dashboard</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">Uniform</div>
+        <div class="nav-group-buttons">
+          <button onclick="showStaffPage('uniformStockPage')">Stock &amp; Low Stock</button>
+          <button onclick="showStaffPage('uniformIssuedPage')">Issued Uniform</button>
+          <button onclick="showStaffPage('uniformRequestsPage')">Requests</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">AT Kit</div>
+        <div class="nav-group-buttons">
+          <button onclick="showStaffPage('atStockPage')">Stock</button>
+          <button onclick="showStaffPage('atIssuePage')">Issue Kit</button>
+          <button onclick="showStaffPage('missingKitPage')">Missing Kit</button>
+          <button onclick="showStaffPage('atRequestsPage')">Requests</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">Events</div>
+        <div class="nav-group-buttons">
+          <button onclick="showStaffPage('eventsPage')">Events Hub</button>
+          <button onclick="showStaffPage('kitListPage')">Kit List Creator</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">Checks</div>
+        <div class="nav-group-buttons">
+          <button onclick="showStaffPage('inspectionPage')">Inspections</button>
+          <button onclick="showStaffPage('serviceabilityPage')">Serviceability</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">Administration</div>
+        <div class="nav-group-buttons">
+          <button onclick="showStaffPage('serialRulesPage')">Serial Numbers</button>
+          <button onclick="showStaffPage('tempPasswordPage')">Temporary Passwords</button>
+        </div>
+      </div>
+    </nav>
 
-  <main>
+    <main>
 
     <section id="dashboardPage" class="staff-page active">
       <div class="card">
@@ -193,7 +236,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
         <h2>Quick Actions</h2>
         <button onclick="showStaffPage('eventsPage')">Create / Open Event</button>
         <button onclick="showStaffPage('missingKitPage')">View Missing Kit</button>
-        <button onclick="showStaffPage('lowStockPage')">Generate Low Stock List</button>
+        <button onclick="showStaffSection('uniformStockPage', 'lowStockPage')">Generate Low Stock List</button>
         <button onclick="showStaffPage('inspectionPage')">Inspection Checks</button>
       </div>
     </section>
@@ -202,6 +245,11 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
       <div class="card">
         <h2>Event-Based Issuing Dashboard</h2>
         <p class="small-help">Create an event, add cadets, then issue AT kit against that event.</p>
+        <div class="top-row">
+          <button onclick="showStaffSection('eventsPage', 'eventsPage')">Event Dashboard</button>
+          <button onclick="showStaffSection('eventsPage', 'eventIssuePage')">Issue Sheet</button>
+          <button onclick="showStaffSection('eventsPage', 'kitCheckerPage')">Kit Checker</button>
+        </div>
         <div class="form-grid">
           <input id="eventNameInput" placeholder="Event name e.g. Silver Expedition">
           <input id="eventDateInput" type="date">
@@ -240,7 +288,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
       </div>
     </section>
 
-    <section id="borrowStatsPage" class="staff-page">
+    <section id="borrowStatsPage" class="staff-page consolidated-section" data-parent-page="dashboardPage">
       <div class="card">
         <h2>AT Kit Borrowing Statistics</h2>
         <p class="small-help">Ranks AT kit by how many times it has been issued.</p>
@@ -268,7 +316,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
       </div>
     </section>
 
-    <section id="lowStockPage" class="staff-page">
+    <section id="lowStockPage" class="staff-page consolidated-section" data-parent-page="uniformStockPage">
       <div class="card">
         <h2>Automatic Low Stock Ordering List</h2>
         <p class="small-help">Shows uniform items where quantity is at or below the low stock level.</p>
@@ -512,7 +560,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
       </div>
     </section>
 
-    <section id="eventIssuePage" class="staff-page">
+    <section id="eventIssuePage" class="staff-page consolidated-section" data-parent-page="eventsPage">
       <div class="card">
         <h2>Event Issue Sheet</h2>
         <select id="eventIssueFilter" onchange="renderEventIssueSheet()"><option value="">All events</option></select>
@@ -525,7 +573,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
       </div>
     </section>
 
-    <section id="kitCheckerPage" class="staff-page">
+    <section id="kitCheckerPage" class="staff-page consolidated-section" data-parent-page="eventsPage">
       <div class="card">
         <h2>Kit Checker / Event Issue</h2>
         <select id="checkerEvent" onchange="loadCheckerEvent()"><option value="">Select event / kit list</option></select>
@@ -581,22 +629,25 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 
     <section id="tempPasswordPage" class="staff-page">
       <div class="card">
-        <h2>Temporary Staff Passwords</h2>
+        <h2>Temporary Staff Access</h2>
         <div class="form-grid">
-          <input id="tempPassword" placeholder="Temporary password">
-          <input id="tempName" placeholder="Name / reason">
+          <input id="tempUsername" autocomplete="off" placeholder="Temporary username">
+          <input id="tempPassword" type="password" autocomplete="new-password" placeholder="Temporary password (minimum 6 characters)">
+          <input id="tempNote" placeholder="Name / reason">
           <input id="tempExpiry" type="datetime-local">
         </div>
-        <button class="primary" onclick="createTempPassword()">Create Temporary Password</button>
+        <button class="primary" onclick="createTempPassword()">Create Temporary Access</button>
+        <p>Passwords are securely hashed and cannot be viewed again. Record a temporary password when you create it.</p>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Password</th><th>Name / Reason</th><th>Expires</th><th>Active</th><th>Disable</th></tr></thead>
+            <thead><tr><th>Username</th><th>Name / Reason</th><th>Expires</th><th>Active</th><th>Disable</th></tr></thead>
             <tbody id="tempPasswordTable"></tbody>
           </table>
         </div>
       </div>
     </section>
-  </main>
+    </main>
+  </div>
 </section>
 
 <section id="cadetUniformPortal" class="app">
@@ -653,11 +704,13 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
 <script>
 const SUPABASE_URL = "https://oskorapwgvoecvtdtkwi.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Zm5qgcsjzsuzicBwa6Z0sA_qgn-Gm5R";
-const STAFF_PASSWORD = "1384-Staff";
+const STAFF_SESSION_STORAGE_KEY = "rafacStaffSession";
 
+let publicSupabaseClient = null;
 let supabaseClient = null;
 if(window.supabase){
-  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  publicSupabaseClient = createSupabaseClient();
+  supabaseClient = publicSupabaseClient;
 }else{
   alert("Supabase did not load. Check the internet connection.");
 }
@@ -682,6 +735,46 @@ let pendingEventIssues = JSON.parse(localStorage.getItem("pendingEventIssues") |
 let selectedCheckerEvent = "";
 let modalCadet = "";
 
+function createSupabaseClient(sessionToken=""){
+  const options = {
+    auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false}
+  };
+  if(sessionToken){
+    options.global = {headers:{"x-staff-session":sessionToken}};
+  }
+  return window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, options);
+}
+function activateStaffSession(session){
+  supabaseClient = createSupabaseClient(session.session_token);
+  try{
+    sessionStorage.setItem(STAFF_SESSION_STORAGE_KEY, JSON.stringify({
+      session_token:session.session_token,
+      access_label:session.access_label,
+      expires_at:session.expires_at
+    }));
+  }catch(error){
+    console.warn("Could not persist the staff session in this tab.", error);
+  }
+}
+function clearStaffSession(){
+  try{sessionStorage.removeItem(STAFF_SESSION_STORAGE_KEY);}catch(error){console.warn(error);}
+  supabaseClient = publicSupabaseClient;
+}
+function getStoredStaffSession(){
+  try{
+    const value = sessionStorage.getItem(STAFF_SESSION_STORAGE_KEY);
+    return value ? JSON.parse(value) : null;
+  }catch(error){
+    console.warn("Could not restore the staff session.", error);
+    return null;
+  }
+}
+function setLoginBusy(busy){
+  const button = document.getElementById("staffLoginButton");
+  if(!button) return;
+  button.disabled = busy;
+  button.textContent = busy ? "Checking..." : "Login";
+}
 function escapeHtml(value){
   return String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
@@ -744,22 +837,73 @@ function showOnly(id){
 }
 function goHome(){showOnly("homePage");}
 function showStaffLogin(){showOnly("staffLoginPage");}
-function logout(){goHome();}
-async function showCadetUniformPortal(){showOnly("cadetUniformPortal"); await loadUniformStock(); populateCadetUniformDropdowns();}
+async function logout(){
+  try{await supabaseClient?.rpc("end_staff_session");}catch(error){console.error(error);}
+  clearStaffSession();
+  goHome();
+}
+async function showCadetUniformPortal(){showOnly("cadetUniformPortal"); await loadUniformCatalog(); populateCadetUniformDropdowns();}
 async function showCadetATPortal(){showOnly("cadetATPortal"); await loadKitLists(); populateCadetATEvents();}
 async function loginStaff(){
-  const password = document.getElementById("staffPassword").value.trim();
-  if(password === STAFF_PASSWORD){await openStaffApp("Staff Account");return;}
-  const ok = await checkTempPassword(password);
-  if(ok){await openStaffApp("Temporary Access");return;}
-  alert("Incorrect or expired password.");
+  const username = document.getElementById("staffUsername").value.trim();
+  const password = document.getElementById("staffPassword").value;
+  if(!publicSupabaseClient){alert("Supabase is unavailable.");return;}
+  if(!password){alert("Enter the staff password.");return;}
+  if(username && username.length < 3){alert("Enter the full temporary username.");return;}
+
+  setLoginBusy(true);
+  try{
+    const {data,error} = await publicSupabaseClient.rpc("authenticate_staff", {
+      p_password:password,
+      p_username:username || null
+    });
+    if(error){
+      console.error(error);
+      const message = String(error.message || "");
+      const setupMissing = message.includes("authenticate_staff");
+      const lockedOut = message.includes("Too many failed attempts");
+      alert(setupMissing
+        ? "Secure staff authentication is not configured. Apply SECURITY_SETUP.md first."
+        : lockedOut
+          ? "Too many failed attempts. Please wait 15 minutes and try again."
+          : "Could not authenticate staff access.");
+      return;
+    }
+
+    const session = Array.isArray(data) ? data[0] : data;
+    if(!session?.session_token){alert("Incorrect or expired credentials.");return;}
+
+    activateStaffSession(session);
+    setFieldValues({staffUsername:"", staffPassword:""});
+    await openStaffApp(session.access_label || "Staff Access");
+  }catch(error){
+    console.error(error);
+    alert("Could not authenticate staff access. Check the connection and try again.");
+  }finally{
+    setLoginBusy(false);
+  }
 }
-async function checkTempPassword(password){
-  if(!supabaseClient || !password) return false;
-  const {data,error} = await supabaseClient.from("temporary_passwords").select("*").eq("password", password).eq("active", true);
-  if(error){console.error(error);return false;}
-  const now = new Date();
-  return (data || []).some(row => row.expires_at && new Date(row.expires_at) > now);
+async function restoreStaffSession(){
+  const stored = getStoredStaffSession();
+  if(!stored?.session_token || !publicSupabaseClient){goHome();return;}
+
+  try{
+    supabaseClient = createSupabaseClient(stored.session_token);
+    const {data,error} = await supabaseClient.rpc("validate_staff_session");
+    const session = Array.isArray(data) ? data[0] : data;
+    if(error || !session){
+      if(error) console.error(error);
+      clearStaffSession();
+      goHome();
+      return;
+    }
+
+    await openStaffApp(session.access_label || stored.access_label || "Staff Access");
+  }catch(error){
+    console.error(error);
+    clearStaffSession();
+    goHome();
+  }
 }
 async function openStaffApp(label){
   document.getElementById("loginStatus").innerText = label;
@@ -801,9 +945,18 @@ function pageToRoute(pageId){
   return PAGE_ROUTES[pageId] || "dashboard";
 }
 
+const CONSOLIDATED_PAGE_PARENTS = {
+  "borrowStatsPage":"dashboardPage",
+  "lowStockPage":"uniformStockPage",
+  "eventIssuePage":"eventsPage",
+  "kitCheckerPage":"eventsPage"
+};
+
 function showStaffPage(id){
+  id = CONSOLIDATED_PAGE_PARENTS[id] || id;
   document.querySelectorAll(".staff-page").forEach(page => page.classList.remove("active"));
   document.getElementById(id)?.classList.add("active");
+  document.querySelectorAll(`[data-parent-page="${id}"]`).forEach(page => page.classList.add("active"));
   document.querySelector("nav")?.classList.remove("open");
 
   const route = pageToRoute(id);
@@ -815,24 +968,24 @@ function showStaffPage(id){
     const action = button.getAttribute("onclick") || "";
     button.classList.toggle("active-nav", action.includes("'" + id + "'"));
   });
-  if(id === "dashboardPage") renderMainDashboard();
-  if(id === "eventsPage"){ populateEventDashboardSelect(); loadEventDashboard(); }
+  if(id === "dashboardPage"){ renderMainDashboard(); renderBorrowStats(); }
+  if(id === "eventsPage"){ populateEventDashboardSelect(); loadEventDashboard(); populateEventIssueFilter(); renderEventIssueSheet(); populateCheckerEvents(); loadCheckerEvent(); }
   if(id === "missingKitPage") renderMissingKitDashboard();
-  if(id === "borrowStatsPage") renderBorrowStats();
   if(id === "inspectionPage"){ populateInspectionKitDropdown(); renderInspectionSystem(); }
-  if(id === "lowStockPage") renderLowStockOrderingList();
-  if(id === "uniformStockPage"){ renderUniformStock(); populateUniformBulkDropdowns(); renderUniformBulkTable(); }
+  if(id === "uniformStockPage"){ renderUniformStock(); populateUniformBulkDropdowns(); renderUniformBulkTable(); renderLowStockOrderingList(); }
   if(id === "uniformIssuedPage"){ populateUniformIssueDropdowns(); renderUniformIssues(); }
   if(id === "uniformRequestsPage") renderUniformRequests();
   if(id === "atStockPage"){ renderATKit(); populateATBulkTypeDropdown(); renderATBulkTable(); showNextATSerialPreview(); }
   if(id === "atIssuePage"){ populateATIssueDropdowns(); renderATIssues(); }
   if(id === "kitListPage"){ populateKitListDropdowns(); renderKitListItems(); }
   if(id === "serialRulesPage"){ renderSerialRules(); populateATBulkTypeDropdown(); }
-  if(id === "eventIssuePage"){ populateEventIssueFilter(); renderEventIssueSheet(); }
-  if(id === "kitCheckerPage"){ populateCheckerEvents(); loadCheckerEvent(); }
   if(id === "serviceabilityPage"){ populateServiceKitDropdown(); renderServiceability(); }
   if(id === "atRequestsPage") renderATRequests();
   if(id === "tempPasswordPage") loadTempPasswords();
+}
+function showStaffSection(pageId, sectionId){
+  showStaffPage(pageId);
+  document.getElementById(sectionId)?.scrollIntoView();
 }
 async function loadAll(){
   await loadUniformStock(); await loadUniformIssues(); await loadUniformRequests();
@@ -849,6 +1002,13 @@ async function refreshATIssueData(){
   await loadATKit();
   await loadATIssues();
   renderATOverview();
+}
+async function loadUniformCatalog(){
+  if(!publicSupabaseClient) return;
+  const {data,error} = await publicSupabaseClient.rpc("get_uniform_catalog");
+  if(error){console.error(error);alert("Could not load the uniform list.");return;}
+  uniformStock = data || [];
+  populateCadetUniformDropdowns();
 }
 async function loadUniformStock(){
   if(!supabaseClient) return;
@@ -984,8 +1144,14 @@ async function submitUniformRequest(){
   const item = document.getElementById("cadetUniformItem").value;
   const size = document.getElementById("cadetUniformSize").value;
   const reason = document.getElementById("cadetUniformReason").value.trim();
+  if(!publicSupabaseClient){alert("Supabase is unavailable.");return;}
   if(!cadet || !item || !size || !reason){alert("Complete all fields.");return;}
-  const {error} = await supabaseClient.from("uniform_requests").insert([{cadet_name:cadet,item,size,reason,status:"Pending"}]);
+  const {error} = await publicSupabaseClient.rpc("submit_uniform_request", {
+    p_cadet_name:cadet,
+    p_item:item,
+    p_size:size,
+    p_reason:reason
+  });
   if(error){ console.error(error); alert("Could not submit request."); return; }
   alert("Request submitted.");
   setFieldValues({cadetUniformName:"", cadetUniformItem:"", cadetUniformReason:""});
@@ -1075,6 +1241,7 @@ async function returnATKit(issueId){
   await refreshATIssueData();
 }
 async function loadKitLists(){
+  if(!supabaseClient) return;
   const {data:lists,error:listError} = await supabaseClient.from("at_kit_lists").select("*").eq("active", true).order("activity_name");
   if(listError){ console.error(listError); return; }
   const {data:items,error:itemError} = await supabaseClient.from("at_kit_list_items").select("*").order("display_order");
@@ -1216,8 +1383,14 @@ async function submitATRequest(){
   const notes = document.getElementById("cadetATNotes").value.trim();
   const list = findById(kitLists, eventId);
   const selected = getCheckedValues(".cadet-at-check:checked");
+  if(!publicSupabaseClient){alert("Supabase is unavailable.");return;}
   if(!cadet || !eventId || !selected.length){alert("Enter your name, select an event and tick kit needed.");return;}
-  const {error} = await supabaseClient.from("at_kit_requests").insert([{cadet_name:cadet,activity_name:list?.activity_name || "",kit_type:selected.join(", "),requested_items:selected,reason:notes,status:"Pending"}]);
+  const {error} = await publicSupabaseClient.rpc("submit_at_kit_request", {
+    p_cadet_name:cadet,
+    p_activity_name:list?.activity_name || "",
+    p_requested_items:selected,
+    p_reason:notes
+  });
   if(error){ console.error(error); alert("Could not submit AT request."); return; }
   alert("AT kit request submitted.");
   setFieldValues({cadetATName:"", cadetATEvent:"", cadetATNotes:""});
@@ -1259,26 +1432,33 @@ async function deleteServiceCheck(id){
   await loadServiceChecks();
 }
 async function loadTempPasswords(showAlert=false){
-  const {data,error} = await supabaseClient.from("temporary_passwords").select("*").order("expires_at", {ascending:false});
-  if(error){ console.error(error); if(showAlert) alert("Could not load temporary passwords."); return; }
+  const {data,error} = await supabaseClient.rpc("list_temporary_credentials");
+  if(error){ console.error(error); if(showAlert) alert("Could not load temporary access."); return; }
   tempPasswords = data || []; renderTempPasswords();
 }
 function renderTempPasswords(){
-  renderTableRows("tempPasswordTable", tempPasswords, 5, "No temporary passwords found", x => `<tr><td>${escapeHtml(x.password)}</td><td>${escapeHtml(x.note)}</td><td>${formatDate(x.expires_at)}</td><td>${x.active ? "Yes" : "No"}</td><td>${x.active ? `<button class="danger" onclick="disableTempPassword('${x.id}')">Disable</button>` : "Disabled"}</td></tr>`);
+  renderTableRows("tempPasswordTable", tempPasswords, 5, "No temporary access found", x => `<tr><td>${escapeHtml(x.username)}</td><td>${escapeHtml(x.note)}</td><td>${formatDate(x.expires_at)}</td><td>${x.active ? "Yes" : "No"}</td><td>${x.active ? `<button class="danger" onclick="disableTempPassword('${x.id}')">Disable</button>` : "Disabled"}</td></tr>`);
 }
 async function createTempPassword(){
-  const password = document.getElementById("tempPassword").value.trim();
-  const note = document.getElementById("tempName").value.trim();
+  const username = document.getElementById("tempUsername").value.trim();
+  const password = document.getElementById("tempPassword").value;
+  const note = document.getElementById("tempNote").value.trim();
   const expiry = document.getElementById("tempExpiry").value;
-  if(!password || !expiry){alert("Enter a password and expiry date/time.");return;}
-  const {error} = await supabaseClient.from("temporary_passwords").insert([{password,note,expires_at:new Date(expiry).toISOString(),active:true}]);
-  if(error){ console.error(error); alert("Could not create temporary password."); return; }
-  setFieldValues({tempPassword:"", tempName:"", tempExpiry:""});
+  if(username.length < 3 || password.length < 6 || !expiry){alert("Enter a username, a password of at least 6 characters, and an expiry date/time.");return;}
+  const {error} = await supabaseClient.rpc("create_temporary_credential", {
+    p_username:username,
+    p_password:password,
+    p_note:note,
+    p_expires_at:new Date(expiry).toISOString()
+  });
+  if(error){ console.error(error); alert(error.message || "Could not create temporary access."); return; }
+  setFieldValues({tempUsername:"", tempPassword:"", tempNote:"", tempExpiry:""});
+  alert("Temporary access created.");
   await loadTempPasswords();
 }
 async function disableTempPassword(id){
-  const {error} = await supabaseClient.from("temporary_passwords").update({active:false}).eq("id", id);
-  if(error){ console.error(error); alert("Could not disable password."); return; }
+  const {error} = await supabaseClient.rpc("disable_temporary_credential", {p_id:id});
+  if(error){ console.error(error); alert("Could not disable temporary access."); return; }
   await loadTempPasswords();
 }
 function saveSerialRules(){
@@ -1752,7 +1932,7 @@ window.addEventListener("hashchange", () => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  goHome();
+  restoreStaffSession();
 });
 </script>
 </body>
