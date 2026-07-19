@@ -9,6 +9,7 @@ The browser now sends passwords only to a Supabase database function over HTTPS.
 1. Back up the Supabase database.
 2. Open the Supabase SQL Editor.
 3. Run [`supabase/migrations/20260716_password_only_staff_auth.sql`](supabase/migrations/20260716_password_only_staff_auth.sql).
+   If the original migration was already applied before the authentication expiry fix, also run [`supabase/migrations/20260716213500_fix_authenticate_staff.sql`](supabase/migrations/20260716213500_fix_authenticate_staff.sql).
 4. Set a new permanent staff password in the SQL Editor:
 
    ```sql

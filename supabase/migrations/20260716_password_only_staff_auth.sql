@@ -265,9 +265,10 @@ begin
     v_access_label := 'Staff Account';
     v_session_expires := now() + interval '8 hours';
   else
-    update private.temporary_credentials
+    update private.temporary_credentials credential
     set active = false
-    where active = true and expires_at <= now();
+    where credential.active = true
+      and credential.expires_at <= now();
 
     select credential.password_hash, credential.expires_at
     into v_password_hash, v_credential_expires
@@ -305,9 +306,9 @@ begin
   insert into private.staff_login_attempts (client_key, success)
   select key, true from unnest(array[v_client_key, v_account_key]) key;
 
-  delete from private.staff_sessions
-  where expires_at < now() - interval '1 day'
-    or revoked_at < now() - interval '1 day';
+  delete from private.staff_sessions session
+  where session.expires_at < now() - interval '1 day'
+    or session.revoked_at < now() - interval '1 day';
 
   v_token := encode(extensions.gen_random_bytes(32), 'hex');
 
